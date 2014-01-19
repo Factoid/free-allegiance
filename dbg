@@ -1,2 +1,0 @@
-#!/bin/bash
-LIBGL_DEBUG=verbose primusrun gdb src/fa $1
