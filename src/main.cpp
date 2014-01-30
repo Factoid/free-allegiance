@@ -62,10 +62,10 @@ void runOSGRenderer()
 
   osg::ref_ptr<osg::ClearNode> cNode( new osg::ClearNode );
   cNode->setClearColor(osg::Vec4(0.0f,0.0f,0.0f,1.0f));
-//  root->addChild(cNode.get());
+  root->addChild(cNode.get());
 
-  osg::ref_ptr<osg::Node> model = osgDB::readNodeFile("../data/suzanne.obj" );
-  osg::ref_ptr<osg::Image> img = osgDB::readImageFile("../data/img.png" );
+  osg::ref_ptr<osg::Node> model = osgDB::readNodeFile("data/suzanne.obj" );
+  osg::ref_ptr<osg::Image> img = osgDB::readImageFile("data/img.png" );
   osg::ref_ptr<osg::Texture2D> tex = new osg::Texture2D(img);
   model->getOrCreateStateSet()->setTextureAttributeAndModes( 0, tex.get(), osg::StateAttribute::ON );
   root->addChild(model.get());
