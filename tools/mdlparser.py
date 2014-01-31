@@ -22,6 +22,7 @@ class Vector:
 class UV:
   def __init__(self,reader):
     self.u, self.v = struct.unpack( "ff", reader.f.read(8) )
+    self.v = 1.0 - self.v
 
 class Color:
   def __init__(self,reader):
@@ -114,6 +115,7 @@ class MeshGeoFactory:
         
 class MeshGeo:
   def __init__(self,reader):
+    print( "Creating MeshGeo object" )
     self.verts = []
     self.indices = []
     numVerts = reader.read_dword()
@@ -201,8 +203,11 @@ class BinarySurfaceInfo:
 
 class ImportImage:
   def __init__(self,reader):
+    print( "Loading Image object" )
     self.info = BinarySurfaceInfo(reader)
     self.pixdata = reader.f.read(self.info.pitch * self.info.size.y)
+    reader.f.read(3)
+#    reader.align_bytes()
 
   def write_png(self,path):
     img = Image.new("RGBA",(self.info.size.x,self.info.size.y))
@@ -213,7 +218,7 @@ class ImportImage:
       c = p[0] << 8 | p[1]
       colors.append(self.info.get_rgb(c))
     img.putdata(colors)
-    img.transpose(Image.FLIP_TOP_BOTTOM).save(path)
+    img.save(path)
 
 class ImportImageFactory:
   def read(self,reader,stack):
@@ -243,6 +248,9 @@ class NamespaceManager:
       return NamespaceManager.objects[namespace][libname]
     except KeyError:
       print( "Couldn't find", namespace, libname )
+      print( "Attempting to add {0}.mdl".format(libname) )
+      NamespaceManager.add( namespace, libname, MDLFile("../Artwork/{0}.mdl".format(libname)).objects[libname] )
+      return NamespaceManager.objects[namespace][libname]
 
   @staticmethod
   def add( namespace, libname, obj ):
@@ -314,7 +322,7 @@ class MDLFile:
           return stack.pop()
         else:
           return None
-      else: raise Exception("Read Object, bad token %i" % token)
+      else: raise Exception("Read Object, bad token {0} at position {1}({2})".format(token,self.f.tell(),hex(self.f.tell())))
 
   def read_list(self):
     count = self.read_dword()
@@ -365,6 +373,9 @@ class MDLFile:
 #    mesh = geo.to_collada()
 #    mesh.write(path)
 
+  def align_bytes(self):
+    self.f.read(self.f.tell()%4)
+
 if len(sys.argv) < 2:
   print( "Provide filename root" )
   exit(1)
@@ -383,8 +394,7 @@ NamespaceManager.add( "model", "MeshGeo", MeshGeoFactory() )
 NamespaceManager.add( "model", "TextureGeo", TextureGeoFactory() )
 NamespaceManager.add( "model", "ImportImage", ImportImageFactory() )
 NamespaceManager.add( "model", "GroupGeo", GroupGeoFactory() )
-
-NamespaceManager.add( bmpName, bmpName, MDLFile("../Artwork/"+bmpMdl).objects[bmpName] )
+#NamespaceManager.add( bmpName, bmpName, MDLFile("../Artwork/"+bmpMdl).objects[bmpName] )
 mdlfile = MDLFile("../Artwork/"+mdlName)
-mdlfile.export_meshes("./int01.obj")
-mdlfile.get_img().write_png("./int01.png")
+mdlfile.export_meshes("./decompiled/"+rootName+".obj")
+mdlfile.get_img().write_png("./decompiled/"+rootName+".png")
