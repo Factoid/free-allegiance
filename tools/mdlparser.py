@@ -4,14 +4,16 @@ import sys
 import io
 from collada import *
 import numpy
+from PIL import Image
 
 class ModifiableNumber:
-  def __init__(self):
+  def __init__(self,stack):
+    self.value = stack.pop()
     pass
 
+class ModifiableNumberFactory:
   def apply(self,stack):
-    self.value = stack.pop()
-    return self
+    return ModifiableNumber(stack)
 
 class Vector:
   def __init__(self,reader):
@@ -33,18 +35,22 @@ class Light:
     reader.f.read(4) ## byte align
 
 class LightsGeo:
-  def __init__(self):
+  def __init__(self,reader):
     self.lights = []
-
-  def read(self,reader,stack):
     count = reader.read_dword()
     for i in range(count):
       self.lights.append(Light(reader))
-    return self
+
+class LightsGeoFactory:
+  def read(self,reader,stack):
+    return LightsGeo(reader)
 
 class Time:
   def __init__(self):
     pass
+
+class TimeFactory:
+  pass
 
 class Frame:
   def __init__(self,reader):
@@ -57,20 +63,44 @@ class FrameData:
   def __init__(self):
     self.frames = []
 
+class FrameDataFactory:
   def read(self,reader,stack):
     count = reader.read_dword()
+    f = FrameData()
     for i in range(count):
-      self.frames.append(Frame(reader))
-    return self
+      f.frames.append(Frame(reader))
+    return f
+
+class GroupGeo:
+  def __init__(self,stack):
+    self.geo_list = stack.pop()
+    self.geo_list.reverse()
+
+  def get_img(self):
+    return self.geo_list[0].get_img()
+
+  def get_geo(self):
+    return self.geo_list[0].get_geo()
+
+class GroupGeoFactory:
+  def apply(self,stack):
+    return GroupGeo(stack)
 
 class LODGeo:
-  def __init__(self):
-    pass
-
-  def apply(self,stack):
+  def __init__(self,stack):
     self.rootgeo = stack.pop()
     self.lodgeo = stack.pop()
-    return self
+    pass
+
+  def get_img(self):
+    return self.rootgeo.get_img()
+
+  def get_geo(self):
+    return self.rootgeo.get_geo()
+
+class LODGeoFactory:
+  def apply(self,stack):
+    return LODGeo(stack)
 
 class Vertex:
   def __init__(self,reader):
@@ -78,7 +108,7 @@ class Vertex:
     self.tex = UV(reader)
     self.normal = Vector(reader)
 
-class MeshGeoMaker:
+class MeshGeoFactory:
   def read(self,reader,stack):
     return MeshGeo(reader)
         
@@ -148,35 +178,71 @@ class Point:
   def __init__(self,reader):
     self.x, self.y = struct.unpack("ii",reader.f.read(8))
 
+def to_range(c,mask):
+  v = c & mask
+  if mask == 0: return 255
+
+  while( mask & 1 == 0 ):
+    v >>= 1
+    mask >>= 1
+  return int(float(v)/float(mask)*255)
+
 class BinarySurfaceInfo:
   def __init__(self,reader):
     self.size = Point(reader)
     self.pitch, self.bitCount, self.redMask, self.greenMask, self.blueMask, self.alphaMask, self.colorKeyed = struct.unpack( "hIIIII?", reader.f.read(25) )
 
-class ImportImage:
-  def __init__(self):
-    pass
+  def get_rgb(self, c):
+    r = to_range(c,self.redMask)
+    g = to_range(c,self.greenMask)
+    b = to_range(c,self.blueMask)
+    a = to_range(c,self.alphaMask)
+    return (r,g,b,a)
 
-  def read(self,reader,stack):
+class ImportImage:
+  def __init__(self,reader):
     self.info = BinarySurfaceInfo(reader)
     self.pixdata = reader.f.read(self.info.pitch * self.info.size.y)
-    return self
+
+  def write_png(self,path):
+    img = Image.new("RGBA",(self.info.size.x,self.info.size.y))
+    
+    ptups = zip( self.pixdata[0::2], self.pixdata[1::2] )
+    colors = []
+    for p in ptups:
+      c = p[0] << 8 | p[1]
+      colors.append(self.info.get_rgb(c))
+    img.putdata(colors)
+    img.transpose(Image.FLIP_TOP_BOTTOM).save(path)
+
+class ImportImageFactory:
+  def read(self,reader,stack):
+    return ImportImage(reader)
 
 class TextureGeo:
-  def __init__(self):
-    pass
-
-  def apply(self,stack):
+  def __init__(self,stack):
     self.geo = stack.pop()
     self.image = stack.pop()
-    return self
+
+  def get_img(self):
+    return self.image
+
+  def get_geo(self):
+    return self.geo
+
+class TextureGeoFactory:
+  def apply(self,stack):
+    return TextureGeo(stack);
 
 class NamespaceManager:
   objects = {}
 
   @staticmethod
   def find( namespace, libname ):
-    return NamespaceManager.objects[namespace][libname]
+    try:
+      return NamespaceManager.objects[namespace][libname]
+    except KeyError:
+      print( "Couldn't find", namespace, libname )
 
   @staticmethod
   def add( namespace, libname, obj ):
@@ -288,22 +354,37 @@ class MDLFile:
     obj = stack.pop()
     return obj.read(self,stack)
 
+  def get_img(self):
+    return self.objects['object'].get_img()
+
   def get_geo(self):
-    return self.objects['object'].rootgeo.geo
+    return self.objects['object'].get_geo()
 
   def export_meshes(self,path):
     self.get_geo().to_obj(path)
 #    mesh = geo.to_collada()
 #    mesh.write(path)
 
-NamespaceManager.add( "model", "ModifiableNumber", ModifiableNumber() )
-NamespaceManager.add( "effect", "LightsGeo", LightsGeo() )
-NamespaceManager.add( "model", "time", Time() )
-NamespaceManager.add( "effect", "FrameData", FrameData() )
-NamespaceManager.add( "model", "LODGeo", LODGeo() )
-NamespaceManager.add( "model", "MeshGeo", MeshGeoMaker() )
-NamespaceManager.add( "model", "TextureGeo", TextureGeo() )
-NamespaceManager.add( "model", "ImportImage", ImportImage() )
-NamespaceManager.add( "int01bmp", "int01bmp", MDLFile("../Artwork/int01bmp.mdl").objects["int01bmp"] )
-mdlfile = MDLFile("../Artwork/int01.mdl")
+if len(sys.argv) < 2:
+  print( "Provide filename root" )
+  exit(1)
+
+rootName = sys.argv[1]
+bmpName = rootName+"bmp"
+bmpMdl = bmpName+".mdl"
+mdlName = rootName+".mdl"
+
+NamespaceManager.add( "model", "ModifiableNumber", ModifiableNumberFactory() )
+NamespaceManager.add( "effect", "LightsGeo", LightsGeoFactory() )
+NamespaceManager.add( "model", "time", TimeFactory() )
+NamespaceManager.add( "effect", "FrameData", FrameDataFactory() )
+NamespaceManager.add( "model", "LODGeo", LODGeoFactory() )
+NamespaceManager.add( "model", "MeshGeo", MeshGeoFactory() )
+NamespaceManager.add( "model", "TextureGeo", TextureGeoFactory() )
+NamespaceManager.add( "model", "ImportImage", ImportImageFactory() )
+NamespaceManager.add( "model", "GroupGeo", GroupGeoFactory() )
+
+NamespaceManager.add( bmpName, bmpName, MDLFile("../Artwork/"+bmpMdl).objects[bmpName] )
+mdlfile = MDLFile("../Artwork/"+mdlName)
 mdlfile.export_meshes("./int01.obj")
+mdlfile.get_img().write_png("./int01.png")
