@@ -1,3 +1,6 @@
+test.json
+core
+test2.json
 *.o
 *.obj
 *.png
@@ -7,3 +10,4 @@ mdlviewer
 *.swp
 .deps/
 Artwork/
+tools/decompiled/

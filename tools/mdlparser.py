@@ -2,14 +2,52 @@
 import struct
 import sys
 import io
-from collada import *
-import numpy
+import jsonpickle
+#from collada import *
+#import numpy
 from PIL import Image
+#import xml.etree.ElementTree as ET
 
+#class XMLWriter:
+#  def add_xml(self,name,parent=None):
+#    if parent: 
+#      self.node = ET.SubElement(parent,type(self).__name__)
+#    else:
+#      self.node = ET.Element(type(self).__name__)
+#    self.node.set("name",name)
+#    for key,value in self.__dict__.items():
+#      if value == self.node: continue
+#      if isinstance(value,XMLWriter):
+#        value.add_xml(key,self.node)
+#      else:
+#        self.node.set(key,str(value))
+#
+#class FloatList(XMLWriter):
+#  def __init__(self):
+#    self.a = Float(10)
+#    self.b = Float(30.5)
+#    self.c = "a string"
+#    self.d = 22.0
+#    self.e = 15
+#    self.f = [10,20,30,40]
+#
+#class Float(XMLWriter):
+#  def __init__(self,value):
+#    self.value = value
+
+#  def add_xml(self,parent,name):
+#    super(Float,self).add_xml(parent,name)
+#    self.node.set("value",str(self.value))
+    
 class ModifiableNumber:
   def __init__(self,stack):
     self.value = stack.pop()
     pass
+
+  def add_xml(self,root,name=None):
+    node = ET.SubElement(root,"float")
+    if name: node.set("name",name)
+    node.set("value",str(self.value))
 
 class ModifiableNumberFactory:
   def apply(self,stack):
@@ -18,6 +56,13 @@ class ModifiableNumberFactory:
 class Vector:
   def __init__(self,reader):
     self.x, self.y, self.z = struct.unpack( "fff", reader.f.read(4*3) )
+
+  def add_xml(self,root,name=None):
+    node = ET.SubElement(root,"Vector3")
+    if name: node.set('name',name)
+    node.set('x',str(self.x))
+    node.set('y',str(self.y))
+    node.set('z',str(self.z))
 
 class UV:
   def __init__(self,reader):
@@ -28,12 +73,30 @@ class Color:
   def __init__(self,reader):
     self.r, self.g, self.b = struct.unpack( "fff", reader.f.read(4*3) )
 
+  def add_xml(self,root,name=None):
+    node = ET.SubElement(root,"color")
+    if name: node.set("name",name)
+    node.set('r',str(self.r))
+    node.set('g',str(self.g))
+    node.set('b',str(self.b))
+
 class Light:
   def __init__(self,reader):
     self.color = Color(reader)
-    self.vector = Vector(reader)
+    self.position = Vector(reader)
     self.period, self.phase, self.ramp_up, self.hold, self.ramp_down = struct.unpack( "fffff", reader.f.read(4*5) )
     reader.f.read(4) ## byte align
+
+  def add_xml(self,root,name=None):
+    node = ET.SubElement(root,"light")
+    if name: node.set("name",name)
+    self.color.add_xml(node)
+    self.position.add_xml(node,"position")
+    node.set('period',str(self.period))
+    node.set('phase',str(self.phase))
+    node.set('ramp_up',str(self.ramp_up))
+    node.set('hold',str(self.hold))
+    node.set('ramp_down',str(self.ramp_down))
 
 class LightsGeo:
   def __init__(self,reader):
@@ -41,6 +104,12 @@ class LightsGeo:
     count = reader.read_dword()
     for i in range(count):
       self.lights.append(Light(reader))
+
+  def add_xml(self,root,name=None):
+    node = ET.SubElement(root,"lights")
+    if name: node.set("name",name)
+    for l in self.lights:
+      l.add_xml(node)
 
 class LightsGeoFactory:
   def read(self,reader,stack):
@@ -60,9 +129,23 @@ class Frame:
     self.forward = Vector(reader)
     self.up = Vector(reader)
 
+  def add_xml(self,root,name=None):
+    node = ET.SubElement(root,"frame")
+    if name: node.set("name",name)
+    node.set('name',self.name)
+    self.position.add_xml(node,"position")
+    self.forward.add_xml(node,"forward")
+    self.up.add_xml(node,"up")
+
 class FrameData:
   def __init__(self):
     self.frames = []
+
+  def add_xml(self,root,name=None):
+    node = ET.SubElement(root,"frames")
+    if name: node.set("name",name)
+    for f in self.frames:
+      f.add_xml(node)
 
 class FrameDataFactory:
   def read(self,reader,stack):
@@ -76,6 +159,18 @@ class GroupGeo:
   def __init__(self,stack):
     self.geo_list = stack.pop()
     self.geo_list.reverse()
+
+  def add_xml(self,root,name=None):
+    node = ET.SubElement(root,"group_geo")
+    if name: node.set("name",name)
+    for l in self.geo_list:
+      l.add_xml(node)
+
+#  def __getstate__(self):
+#    return { 'geo_group' : self.geo_list }
+#
+#  def __setstate__(self,state):
+#    pass
 
   def get_img(self):
     return self.geo_list[0].get_img()
@@ -91,13 +186,27 @@ class LODGeo:
   def __init__(self,stack):
     self.rootgeo = stack.pop()
     self.lodgeo = stack.pop()
-    pass
 
   def get_img(self):
     return self.rootgeo.get_img()
 
   def get_geo(self):
     return self.rootgeo.get_geo()
+
+#  def __getstate__(self):
+#    return { 'root' : self.rootgeo.__getstate__() }
+#
+#  def __setstate__(self,state):
+#    pass
+
+  def add_xml(self,root,name=None):
+    node = ET.SubElement(root,"lod_geo")
+    if name: node.set("name",name)
+    self.rootgeo.add_xml(node)
+    for l in self.lodgeo:
+      n2 = ET.SubElement(node,"lod")
+      n2.set("range",str(l[0]))
+      l[1].add_xml(n2)
 
 class LODGeoFactory:
   def apply(self,stack):
@@ -114,8 +223,16 @@ class MeshGeoFactory:
     return MeshGeo(reader)
         
 class MeshGeo:
+  write_path = ""
+  base_name = ""
+  mesh_num = 0
+
   def __init__(self,reader):
     print( "Creating MeshGeo object" )
+
+    self.name = "{0}_{1}".format(reader.namespace,MeshGeo.mesh_num)
+    MeshGeo.mesh_num += 1
+    
     self.verts = []
     self.indices = []
     numVerts = reader.read_dword()
@@ -124,6 +241,18 @@ class MeshGeo:
       self.verts.append(Vertex(reader))
     for i in range(numIndices):
       self.indices.append(reader.read_word())
+
+    self.to_obj("{0}/{1}.obj".format(MDLFile.write_path,self.name))
+
+  def __getstate__(self):
+    return { 'file_reference' : self.name }
+
+  def __setstate__(self,state):
+    self.__dict__.update(state)
+
+  def add_xml(self,root,name=None):
+    node = ET.SubElement(root,"mesh_geo")
+    node.set("name",self.name)
 
   def get_lists(self):
     vert = []
@@ -162,7 +291,7 @@ class MeshGeo:
 
   def to_obj(self,path):
     with open(path,"w") as f:
-      print("Num verts %i, Num Faces %i" % (len(self.verts),len(self.indices)/3))
+      print("Num verts %i, Num Faces %i to %s" % (len(self.verts),len(self.indices)/3,path))
       for v in self.verts:
         f.write( "v {0} {1} {2}\n".format(v.pos.x,v.pos.y,v.pos.z) )
         f.write( "vt {0} {1}\n".format(v.tex.u,v.tex.v) )
@@ -204,12 +333,26 @@ class BinarySurfaceInfo:
 class ImportImage:
   def __init__(self,reader):
     print( "Loading Image object" )
+    self.namespace = reader.namespace
+    self.name = reader.namespace + ".png"
     self.info = BinarySurfaceInfo(reader)
     self.pixdata = reader.f.read(self.info.pitch * self.info.size.y)
-    reader.f.read(3)
-#    reader.align_bytes()
+    reader.align_bytes()
+    self.write_png( "{0}/{1}".format(MDLFile.write_path,self.name) )
+
+  def __getstate__(self):
+    return { 'file_reference' : self.name }
+
+  def __setstate__(self,state):
+    self.__dict__.update(state)
+
+  def add_xml(self,root,name=None):
+    node = ET.SubElement(root,"image")
+    if name: node.set("name",name)
+    node.set('name',self.name)
 
   def write_png(self,path):
+    print( "Saving", self.name, "to", path)
     img = Image.new("RGBA",(self.info.size.x,self.info.size.y))
     
     ptups = zip( self.pixdata[0::2], self.pixdata[1::2] )
@@ -228,6 +371,19 @@ class TextureGeo:
   def __init__(self,stack):
     self.geo = stack.pop()
     self.image = stack.pop()
+
+#  def __getstate__(self):
+#    return {}
+#    #return { "geo" : self.geo.__getstate__(), "image" : self.image.__getstate__() }  
+#
+#  def __setstate__(self,state):
+#    pass
+
+  def add_xml(self,root,name=None):
+    node = ET.SubElement(root,"texture_geo")
+    if name: node.set("name",name)
+    self.geo.add_xml(node)
+    self.image.add_xml(node)
 
   def get_img(self):
     return self.image
@@ -249,7 +405,7 @@ class NamespaceManager:
     except KeyError:
       print( "Couldn't find", namespace, libname )
       print( "Attempting to add {0}.mdl".format(libname) )
-      NamespaceManager.add( namespace, libname, MDLFile("../Artwork/{0}.mdl".format(libname)).objects[libname] )
+      NamespaceManager.add( namespace, libname, MDLFile("../Artwork/{0}.mdl".format(libname),namespace).objects[libname])
       return NamespaceManager.objects[namespace][libname]
 
   @staticmethod
@@ -259,6 +415,7 @@ class NamespaceManager:
     NamespaceManager.objects[namespace][libname] = obj
 
 class MDLFile:
+  write_path = ""
   MAGIC = 0xdebadf00
   VERSION = 0x00010000
   OBJ_END = 0
@@ -273,7 +430,8 @@ class MDLFile:
   OBJ_IMPORT = 9
   OBJ_PAIR = 10
 
-  def __init__(self,path):
+  def __init__(self,path,namespace):
+    self.namespace = namespace
     with io.open(path,"rb") as self.f:
       magic, version, numNameSpaces, numImports, numExports, numDefinitions = struct.unpack("IIIIII",self.f.read(4*6))
       if magic != MDLFile.MAGIC:
@@ -354,8 +512,7 @@ class MDLFile:
       s.append(ord(c))
       c = self.f.read(1)
     l = len(s)
-    skip = 3-(l%4)
-    self.f.read(skip)
+    self.align_bytes()
     return s.decode("utf-8")
 
   def read_binary(self,stack):
@@ -374,15 +531,32 @@ class MDLFile:
 #    mesh.write(path)
 
   def align_bytes(self):
-    self.f.read(self.f.tell()%4)
+    skip = 3-((self.f.tell()-1)%4) 
+    self.f.read(skip)
+
+  def write_xml(self):
+    root = ET.Element('model')
+    for key, value in self.objects.items():
+      value.add_xml(root,key)
+
+    with open( "/".join([MDLFile.write_path,self.namespace])+".xml", "w" ) as f:
+      f.write(ET.tostring(root,"unicode"))
+
+  def write_json(self):
+    with open( "/".join([MDLFile.write_path,self.namespace])+".json", "w" ) as f:
+      f.write( jsonpickle.encode(self) )
+
+  def __getstate__(self):
+    return { 'objects' : self.objects }
+
+  def __setstate__(self,state):
+    self.__dict__.update(state)
 
 if len(sys.argv) < 2:
   print( "Provide filename root" )
   exit(1)
 
 rootName = sys.argv[1]
-bmpName = rootName+"bmp"
-bmpMdl = bmpName+".mdl"
 mdlName = rootName+".mdl"
 
 NamespaceManager.add( "model", "ModifiableNumber", ModifiableNumberFactory() )
@@ -394,7 +568,6 @@ NamespaceManager.add( "model", "MeshGeo", MeshGeoFactory() )
 NamespaceManager.add( "model", "TextureGeo", TextureGeoFactory() )
 NamespaceManager.add( "model", "ImportImage", ImportImageFactory() )
 NamespaceManager.add( "model", "GroupGeo", GroupGeoFactory() )
-#NamespaceManager.add( bmpName, bmpName, MDLFile("../Artwork/"+bmpMdl).objects[bmpName] )
-mdlfile = MDLFile("../Artwork/"+mdlName)
-mdlfile.export_meshes("./decompiled/"+rootName+".obj")
-mdlfile.get_img().write_png("./decompiled/"+rootName+".png")
+MDLFile.write_path = "./decompiled/"
+mdlfile = MDLFile("../Artwork/"+mdlName,rootName)
+mdlfile.write_json()
