@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include <typeinfo>
+#include <sstream>
 
 //#include <boost/property_tree/xml_parser.hpp>
 //#include <boost/property_tree/ptree.hpp>
@@ -127,6 +128,13 @@ public:
     ar( CEREAL_NVP(color) );
     ar( CEREAL_NVP(position) );
   }
+
+  std::string toString() const
+  {
+    std::ostringstream os;
+    os << "  Hold " << hold << "\n  Period " << period << "\n  Phase " << phase << "\n  Ramp-Up " << ramp_up << "\n  Ramp-Down " << ramp_down << "\n";
+    return os.str();
+  }
 };
 
 class LODGeo : public Geo
@@ -158,7 +166,7 @@ class ModelDefinition
 public:
   float frame;
   std::vector<Frame> frames;
-  std::shared_ptr<Geo> object;
+  std::unique_ptr<Geo> object;
   std::vector<Light> lights;
 
 public:
@@ -196,10 +204,16 @@ void loadModelDefinition( ModelDefinition& obj, const std::string& path )
   archive(obj);
 }
 
-CEREAL_REGISTER_TYPE( Geo );
 CEREAL_REGISTER_TYPE( ModelGeo );
-CEREAL_REGISTER_TYPE( TextureGeo );
 CEREAL_REGISTER_TYPE( LODGeo );
+CEREAL_REGISTER_TYPE( Geo );
+CEREAL_REGISTER_TYPE( TextureGeo );
+/*
+CEREAL_REGISTER_TYPE_WITH_NAME( ModelGeo, "ModelGeo" `);
+CEREAL_REGISTER_TYPE_WITH_NAME( LODGeo, "LODGeo" );
+CEREAL_REGISTER_TYPE_WITH_NAME( Geo, "Geo" );
+CEREAL_REGISTER_TYPE_WITH_NAME( TextureGeo, "TextureGeo" );
+*/
 
 int main( int argc, char** argv )
 {
@@ -232,6 +246,11 @@ int main( int argc, char** argv )
   }
   loadModelDefinition( d2, "test2.json" );
   std::cout << "Mdl2 resources are " << typeid(*d2.object).name() << " value " << d2.object->getResources() << "\n";
+  std::cout << "Mdl2 lights are " << d2.lights.size() << " in number\n";
+  for( int i = 0; i < d2.lights.size(); ++i )
+  {
+    std::cout << "Light " << i << " is " << d2.lights[i].toString() << "\n";
+  }
 
   osg::ref_ptr<osg::Node> model = osgDB::readNodeFile( base + name + "_" + offset + ".obj" );
   osg::ref_ptr<osg::Image> img = osgDB::readImageFile( base + name + "bmp.png" );
