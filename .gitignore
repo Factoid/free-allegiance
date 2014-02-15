@@ -11,3 +11,4 @@ mdlviewer
 .deps/
 Artwork/
 tools/decompiled/
+deps/cereal

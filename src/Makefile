@@ -3,7 +3,7 @@ PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig
 PC_LIBS=$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs openscenegraph-osgViewer)
 DEP_INCLUDE=../deps/cereal/include
 CC=g++
-CFLAGS=-std=gnu++11
+CFLAGS=-std=gnu++11 -ggdb -O0
 
 all: ../fa
 

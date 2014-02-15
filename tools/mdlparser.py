@@ -6,37 +6,49 @@ import jsonpickle
 import json
 from PIL import Image
 
-class TypeTracker:
+class Ptr(object):
+  pass
+
+class UniquePtr(Ptr):
+  def __init__(self,obj):
+    self.ptr_wrapper = { "data": obj, "valid" : 1 }
+    self.__dict__.update( TypeTracker.add_type(obj.__class__.__name__) )
+
+class SharedPtr(Ptr):
+  instances = {}
+  index = 0
+
+  def __init__(self,obj):
+    self.ptr_wrapper = { "data": obj, "id": SharedPtr.getInstance(obj) }
+    self.__dict__.update( TypeTracker.add_type(obj.__class__.__name__) )
+
+  def getInstance(obj):
+    if obj in SharedPtr.instances:
+      return SharedPtr.instances[obj]
+    else:
+      SharedPtr.index += 1
+      SharedPtr.instances[obj] = SharedPtr.index
+      return SharedPtr.instances[obj] | 0x80000000
+       
+class TypeTracker(object):
   types = {}
   index = 0
 
   def add_type(className):
-    if className in TypeTracker.types:
-      return { "polymorphic_id" : TypeTracker.types[className] }
-    else:
-      TypeTracker.types[className] = TypeTracker.index
+    if className not in TypeTracker.types:
       TypeTracker.index += 1
-      return { "polymorphic_name" : className, "polymorphic_id" : TypeTracker.types[className] | 0x80000000 }
+      TypeTracker.types[className] = TypeTracker.index
+
+    return { "polymorphic_name" : className, "polymorphic_id" : TypeTracker.types[className] | 0x80000000 }
        
 class Geo(object):
-  def __getstate__(self):
-    d = self.__dict__
-    d.update( TypeTracker.add_type(self.__class__.__name__) )
-    return d
-
-  def __setstate__(self,state):
-    self.__dict__.update(state)
-
-class ModifiableNumber:
-  def __init__(self,stack):
-    self.value = stack.pop()
-    pass
+  pass
 
 class ModifiableNumberFactory:
   def apply(self,stack):
-    return ModifiableNumber(stack)
+    return stack.pop()
 
-class Vector:
+class Vector3:
   def __init__(self,reader):
     self.x, self.y, self.z = struct.unpack( "fff", reader.f.read(4*3) )
 
@@ -48,24 +60,22 @@ class UV:
 class Color:
   def __init__(self,reader):
     self.r, self.g, self.b = struct.unpack( "fff", reader.f.read(4*3) )
+    self.a = 1.0
 
 class Light:
   def __init__(self,reader):
     self.color = Color(reader)
-    self.position = Vector(reader)
+    self.position = Vector3(reader)
     self.period, self.phase, self.ramp_up, self.hold, self.ramp_down = struct.unpack( "fffff", reader.f.read(4*5) )
     reader.f.read(4) ## byte align
 
-class LightsGeo:
-  def __init__(self,reader):
-    self.lights = []
-    count = reader.read_dword()
-    for i in range(count):
-      self.lights.append(Light(reader))
-
 class LightsGeoFactory:
   def read(self,reader,stack):
-    return LightsGeo(reader)
+    l = []
+    count = reader.read_dword()
+    for i in range(count):
+      l.append(Light(reader))
+    return l 
 
 class Time:
   def __init__(self):
@@ -77,32 +87,26 @@ class TimeFactory:
 class Frame:
   def __init__(self,reader):
     self.name = reader.read_string()
-    self.position = Vector(reader)
-    self.forward = Vector(reader)
-    self.up = Vector(reader)
+    self.position = Vector3(reader)
+    self.forward = Vector3(reader)
 
-class FrameData:
-  def __init__(self):
-    self.frames = []
+    self.up = Vector3(reader)
 
 class FrameDataFactory:
   def read(self,reader,stack):
     count = reader.read_dword()
-    f = FrameData()
+    f = [] 
     for i in range(count):
-      f.frames.append(Frame(reader))
+      f.append(Frame(reader))
     return f
 
 class GroupGeo(Geo):
   def __init__(self,stack):
-    self.geo_list = stack.pop()
-    self.geo_list.reverse()
-
-  def get_img(self):
-    return self.geo_list[0].get_img()
-
-  def get_geo(self):
-    return self.geo_list[0].get_geo()
+    l = stack.pop()
+    l.reverse()
+    self.geo_list = []
+    for g in l:
+      self.geo_list.append(UniquePtr(g))
 
 class GroupGeoFactory:
   def apply(self,stack):
@@ -110,14 +114,10 @@ class GroupGeoFactory:
 
 class LODGeo(Geo):
   def __init__(self,stack):
-    self.rootgeo = stack.pop()
-    self.lodgeo = stack.pop()
-
-  def get_img(self):
-    return self.rootgeo.get_img()
-
-  def get_geo(self):
-    return self.rootgeo.get_geo()
+    self.rootGeo = UniquePtr(stack.pop())
+    self.lodGeo = stack.pop()
+    for l in self.lodGeo:
+      l["value"] = SharedPtr(l["value"])
 
 class LODGeoFactory:
   def apply(self,stack):
@@ -125,9 +125,9 @@ class LODGeoFactory:
 
 class Vertex:
   def __init__(self,reader):
-    self.pos = Vector(reader)
+    self.pos = Vector3(reader)
     self.tex = UV(reader)
-    self.normal = Vector(reader)
+    self.normal = Vector3(reader)
 
 class MeshGeoFactory:
   def read(self,reader,stack):
@@ -141,7 +141,7 @@ class MeshGeo(Geo):
   def __init__(self,reader):
     print( "Creating MeshGeo object" )
 
-    self.name = "{0}_{1}".format(reader.namespace,MeshGeo.mesh_num)
+    self.resourcePath = "{0}_{1}.obj".format(reader.namespace,MeshGeo.mesh_num)
     MeshGeo.mesh_num += 1
     
     verts = []
@@ -153,7 +153,7 @@ class MeshGeo(Geo):
     for i in range(numIndices):
       indices.append(reader.read_word())
 
-    self.to_obj("{0}/{1}.obj".format(MDLFile.write_path,self.name),verts,indices)
+    self.to_obj("{0}/{1}".format(MDLFile.write_path,self.resourcePath),verts,indices)
 
   def get_lists(self):
     vert = []
@@ -214,7 +214,7 @@ class ImportImage:
     self.write_png( "{0}/{1}".format(MDLFile.write_path,self.name) )
 
   def __getstate__(self):
-    return { 'file_reference' : self.name }
+    return { 'resourcePath' : self.name }
 
   def __setstate__(self,state):
     self.__dict__.update(state)
@@ -236,14 +236,8 @@ class ImportImageFactory:
 
 class TextureGeo(Geo):
   def __init__(self,stack):
-    self.geo = stack.pop()
+    self.geo = UniquePtr(stack.pop())
     self.image = stack.pop()
-
-  def get_img(self):
-    return self.image
-
-  def get_geo(self):
-    return self.geo
 
 class TextureGeoFactory:
   def apply(self,stack):
@@ -344,7 +338,7 @@ class MDLFile:
     return lData
 
   def read_pair(self,stack):
-    return (stack.pop(), stack.pop())
+    return {"key" : stack.pop(), "value" : stack.pop()}
 
   def read_float(self):
     return struct.unpack("f",self.f.read(4))[0]
@@ -388,12 +382,13 @@ class MDLFile:
 
   def write_json(self):
     with open( "/".join([MDLFile.write_path,self.namespace])+".json", "w" ) as f:
-      json_str = jsonpickle.encode(self.objects,False)
-      parsed = json.loads(json_str)
-      f.write( json.dumps(parsed,indent=4,sort_keys=True) )
+      jsonpickle.set_encoder_options('json', indent=4, sort_keys=True)
+      json_str = jsonpickle.encode(self,False)
+      f.write( json_str )
 
   def __getstate__(self):
-    return { 'objects' : self.objects }
+    self.objects['object'] = UniquePtr(self.objects['object'])
+    return { 'value0' : self.objects }
 
   def __setstate__(self,state):
     self.__dict__.update(state)
