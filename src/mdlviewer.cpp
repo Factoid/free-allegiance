@@ -19,6 +19,7 @@
 #include <cereal/types/map.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/polymorphic.hpp>
+  
 
 class ModelObject
 {
@@ -27,76 +28,102 @@ class ModelObject
 class Geo
 {
 public:
+  Geo() {}
   virtual ~Geo() {}
-  template <class Archive> void serialize( Archive& ar ) 
+  virtual osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node ) {}
+  template <class Archive> void serialize( Archive& ar ) {}
+};
+CEREAL_REGISTER_TYPE( Geo );
+
+class ResourceBase
+{
+public:
+  ResourceBase( const std::string& path ) : resourcePath(path) {}
+  ResourceBase() {}
+  virtual ~ResourceBase() {}
+
+  static void setResourceBase( const std::string& b )
   {
-    std::cout << "Loading Geo\n";
+    resourceBase = b;
   }
+  
+  template <class Archive> void serialize( Archive& ar )
+  {
+    ar( CEREAL_NVP(resourcePath) );
+  }
+
+protected:
+  static std::string resourceBase;
+  std::string resourcePath;
 };
 
-class MeshGeo : public Geo
+std::string ResourceBase::resourceBase;
+
+CEREAL_REGISTER_TYPE(ResourceBase);
+
+class MeshGeo : public Geo, public ResourceBase
 {
 public:
   MeshGeo() {}
-  MeshGeo( const std::string& v ) : resourcePath(v) {}
-  template <class Archive> void serialize( Archive& ar )
-  {
-    std::cout << "MeshGeo\n";
-    ar( CEREAL_NVP(resourcePath) );
+  MeshGeo( const std::string& v ) : ResourceBase(v) {}
+  osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node ) {
+    osg::ref_ptr<osg::Node> model = osgDB::readNodeFile( resourceBase + resourcePath );
+    return model;
   }
-
-public:
-  std::string resourcePath;
+  template <class Archive> void serialize( Archive& ar ) {
+    ResourceBase::serialize(ar);
+    Geo::serialize(ar);
+  }
 };
+CEREAL_REGISTER_TYPE( MeshGeo );
 
-class Image
+class Image : public ResourceBase
 {
 public:
-  std::string resourcePath;
-public:
   Image() {}
-  Image( const std::string& v ) : resourcePath(v) {}
-  template <class Archive> void serialize( Archive& ar )
+  Image( const std::string& v ) : ResourceBase(v) {}
+  osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node )
   {
-    std::cout << "Image\n";
-    ar( CEREAL_NVP(resourcePath) );
+    osg::ref_ptr<osg::Image> img = osgDB::readImageFile( resourceBase + resourcePath );
+    osg::ref_ptr<osg::Texture2D> tex = new osg::Texture2D(img);
+    node->getOrCreateStateSet()->setTextureAttributeAndModes( 0, tex.get(), osg::StateAttribute::ON );
+    return node;
   }
 };
 
 class TextureGeo : public Geo
 {
-
 public:
   std::unique_ptr<Geo> geo;
   Image image;
    
 public:
-  TextureGeo()
-  {
-  }
-  TextureGeo( Geo* geo, const std::string& img ) : geo( geo ), image( img )
-  {
-  }
+  TextureGeo() {}
+  TextureGeo( Geo* geo, const std::string& img ) : geo( geo ), image( img ) {}
 
+  osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node ) {
+    osg::ref_ptr<osg::Node> model = geo->buildGraph(0);
+    image.buildGraph( model );
+    return model;
+  }
   template <class Archive> void serialize( Archive& ar )
   {
-    std::cout << "TextureGeo\n";
     ar( CEREAL_NVP(geo) );
-    std::cout << "Image Data\n";
     ar( CEREAL_NVP(image) );
   }
 };
+CEREAL_REGISTER_TYPE( TextureGeo );
 
 class Color
 {
-public:
+private:
   float r,g,b,a;
+public:
   Color() : r(1.0f), g(1.0f), b(1.0f), a(1.0f) {}
   Color( float r, float g, float b, float a = 1.0f ) : r(r), g(g), b(b), a(a) {}
 
   template <class Archive> void serialize( Archive& ar )
   {
-    std::cout << "Color\n";
     ar( CEREAL_NVP(r) );
     ar( CEREAL_NVP(g) );
     ar( CEREAL_NVP(b) );
@@ -106,14 +133,14 @@ public:
 
 class Vector3
 {
-public:
+private:
   float x,y,z;
+public:
   Vector3() : x(0), y(0), z(0) {}
   Vector3( float x, float y, float z ) : x(x), y(y), z(z) { }
 
   template <class Archive> void serialize( Archive& ar )
   {
-    std::cout << "Vector3\n";
     ar( CEREAL_NVP(x) );
     ar( CEREAL_NVP(y) );
     ar( CEREAL_NVP(z) );
@@ -137,7 +164,6 @@ public:
 
   template <class Archive> void serialize( Archive& ar )
   {
-    std::cout << "Light\n";
     ar( CEREAL_NVP(hold) );
     ar( CEREAL_NVP(period) );
     ar( CEREAL_NVP(phase) );
@@ -163,14 +189,31 @@ public:
 
 public:
   LODGeo() {}
+  osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node ) {
+    std::vector<float> keys;
+    std::transform( lodGeo.begin(), lodGeo.end(), std::back_inserter( keys ), [](std::pair<float,std::shared_ptr<Geo> > p ){ return p.first; });
+    std::sort( keys.begin(), keys.end() );
+    keys.push_back(300);
+
+    osg::ref_ptr<osg::LOD> lod(new osg::LOD());
+    osg::ref_ptr<osg::Node> root = rootGeo->buildGraph(0);
+    lod->addChild(root.get(),0,keys[0]);
+
+    for( int i = 0; i < keys.size()-1; ++i )
+    {
+      osg::ref_ptr<osg::Node> node = lodGeo[keys[i]]->buildGraph(0);
+      lod->addChild(node,keys[i],keys[i+1]);
+    }
+
+    return lod; 
+  }
   template <class Archive> void serialize( Archive& ar )
   {
-    std::cout << "LODGeo\n";
     ar( CEREAL_NVP(rootGeo) );
-    std::cout << "Loading LOD array\n";
     ar( CEREAL_NVP(lodGeo) );
   }
 };
+CEREAL_REGISTER_TYPE( LODGeo );
 
 class Frame
 {
@@ -185,13 +228,11 @@ public:
   Frame( const std::string& name, const Vector3& pos, const Vector3& up, const Vector3& forward ) : name(name), position(pos), up(up), forward(forward) {} 
   template <class Archive> void serialize( Archive& ar )
   {
-    std::cout << "Frame\n";
     ar(CEREAL_NVP(name));
     ar(CEREAL_NVP(position));
     ar(CEREAL_NVP(up));
     ar(CEREAL_NVP(forward));
   }
-
 };
 
 class GroupGeo : public Geo
@@ -201,17 +242,26 @@ private:
  
 public:
   GroupGeo() {}
+  osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> root) {
+    osg::ref_ptr<osg::Group> grp( new osg::Group );
+    grp->addChild( geo_list[0]->buildGraph(0) );
+    for( int i = 0; i < geo_list.size(); ++i )
+    {
+      grp->addChild(geo_list[i]->buildGraph(0));
+    }
+    return grp;
+  }
+
   void add( Geo* geo )
   {
     geo_list.push_back(std::unique_ptr<Geo>(geo));
   }
-
   template <class Archive> void serialize( Archive& ar )
   {
-    std::cout << "GroupGeo\n";
     ar( CEREAL_NVP(geo_list) );
   }
 };
+CEREAL_REGISTER_TYPE( GroupGeo );
 
 class ModelDefinition
 {
@@ -225,12 +275,14 @@ public:
   ModelDefinition()
   {
   }
+  void buildGraph( osg::Node* root )
+  {
+    root->asGroup()->addChild(object->buildGraph(0));
+  } 
   template <class Archive> void serialize( Archive& ar )
   {
-    std::cout << "ModelDefinition\n";
     ar( CEREAL_NVP(frame) );
     ar( CEREAL_NVP(frames) );
-    std::cout << "Loading object\n";
     ar( CEREAL_NVP(object) );
     ar( CEREAL_NVP(lights) );
   }
@@ -258,26 +310,8 @@ void loadModelDefinition( ModelDefinition& obj, const std::string& path )
   archive(obj);
 }
 
-CEREAL_REGISTER_TYPE( MeshGeo );
-CEREAL_REGISTER_TYPE( LODGeo );
-CEREAL_REGISTER_TYPE( Geo );
-CEREAL_REGISTER_TYPE( TextureGeo );
-CEREAL_REGISTER_TYPE( GroupGeo );
-/*
-CEREAL_REGISTER_TYPE_WITH_NAME( MeshGeo, "MeshGeo" `);
-CEREAL_REGISTER_TYPE_WITH_NAME( LODGeo, "LODGeo" );
-CEREAL_REGISTER_TYPE_WITH_NAME( Geo, "Geo" );
-CEREAL_REGISTER_TYPE_WITH_NAME( TextureGeo, "TextureGeo" );
-*/
-
-int main( int argc, char** argv )
+void writeTestModelDefinition()
 {
-  osgViewer::Viewer viewer;
-
-  osg::ref_ptr<osg::Group> root( new osg::Group );
-  std::string base("tools/decompiled/");
-  std::string name(argv[1]);
-  std::string offset(argv[2]);
   ModelDefinition d;
   d.frame = 76.0f;
 
@@ -319,25 +353,49 @@ int main( int argc, char** argv )
   d.object = std::unique_ptr<Geo>(g);
   
   saveModelDefinition( d, "test.json" );
-  ModelDefinition d2;
-  if(d2.object != 0)
-  {
-  } else
-  {
-    std::cout << "Mdl2 resources are null\n";
-  }
-  loadModelDefinition( d2, "test2.json" );
-  std::cout << "Mdl2 lights are " << d2.lights.size() << " in number\n";
-  for( int i = 0; i < d2.lights.size(); ++i )
-  {
-    std::cout << "Light " << i << " is " << d2.lights[i].toString() << "\n";
-  }
+}
 
-  osg::ref_ptr<osg::Node> model = osgDB::readNodeFile( base + name + "_" + offset + ".obj" );
-  osg::ref_ptr<osg::Image> img = osgDB::readImageFile( base + name + "bmp.png" );
+void buildGraphFromModelDefinition( const ModelDefinition& def, osg::Group* root )
+{
+/*  
+*/
+}
+
+osg::ref_ptr<osg::Node> getModel()
+{
+  osg::ref_ptr<osg::Node> model = osgDB::readNodeFile( "tools/decompiled/fig02_5.obj" );
+  return model;
+}
+
+osg::ref_ptr<osg::Node> applyImage( osg::ref_ptr<osg::Node> model )
+{
+  osg::ref_ptr<osg::Image> img = osgDB::readImageFile( "tools/decompiled/fig02bmp.png" );
   osg::ref_ptr<osg::Texture2D> tex = new osg::Texture2D(img);
   model->getOrCreateStateSet()->setTextureAttributeAndModes( 0, tex.get(), osg::StateAttribute::ON );
-  root->addChild(model.get());
+  return model;
+}
+
+int main( int argc, char** argv )
+{
+  osgViewer::Viewer viewer;
+
+  osg::ref_ptr<osg::Group> root( new osg::Group );
+  std::string base("tools/decompiled/");
+  std::string name(argv[1]);
+  std::string offset(argv[2]);
+  ResourceBase::setResourceBase(base); 
+
+//  writeTestModelDefinition();
+ 
+  ModelDefinition d2;
+  loadModelDefinition( d2, base + name + ".json" );
+  d2.buildGraph( root.get() );
+
+//  root->addChild( applyImage( getModel() ) );
+
+//  MeshGeo m( "fig02_5.obj" );
+//  Image img( "fig02bmp.png" );
+//  root->addChild( Image("fig02bmp.png").buildGraph( MeshGeo("fig02_5.obj").buildGraph(0) ) );
 
   osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> cameraManip( new osgGA::KeySwitchMatrixManipulator );
   viewer.setSceneData(root.get());
