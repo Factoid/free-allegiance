@@ -1,5 +1,7 @@
 #include <osg/Node>
 #include <osg/Group>
+#include <osg/PositionAttitudeTransform>
+#include <osg/Material>
 #include <osgViewer/Viewer>
 #include <osgGA/KeySwitchMatrixManipulator>
 #include <osgDB/ReadFile>
@@ -20,10 +22,58 @@
 #include <cereal/types/memory.hpp>
 #include <cereal/types/polymorphic.hpp>
   
-
-class ModelObject
+class ResourceManager
 {
+public:
+  enum PrimativeType { PRIMATIVE_QUAD };
+  static std::shared_ptr<ResourceManager> instance() {
+    _instance = std::shared_ptr<ResourceManager>(new ResourceManager);
+    return _instance;
+  }
+
+  osg::ref_ptr<osg::Drawable> getPrimative( ResourceManager::PrimativeType type )
+  {
+    return primatives[type];
+  }
+
+private:
+  static std::shared_ptr<ResourceManager> _instance;
+  std::map< PrimativeType, osg::ref_ptr<osg::Geometry> > primatives;
+
+  osg::ref_ptr<osg::Geometry> createQuad()
+  {
+    osg::ref_ptr<osg::Geometry> quad( new osg::Geometry );
+    osg::ref_ptr<osg::Vec3Array> quadVerts(new osg::Vec3Array);
+    quadVerts->push_back( osg::Vec3(-0.5f, 0.0f, 0.5f) );
+    quadVerts->push_back( osg::Vec3( 0.5f, 0.0f, 0.5f) );
+    quadVerts->push_back( osg::Vec3( 0.5f, 0.0f,-0.5f) );
+    quadVerts->push_back( osg::Vec3(-0.5f, 0.0f,-0.5f) );
+    quad->setVertexArray(quadVerts);
+
+    osg::ref_ptr<osg::DrawElementsUInt> quadIndices( new osg::DrawElementsUInt(osg::PrimitiveSet::QUADS, 0) );
+    quadIndices->push_back(3);
+    quadIndices->push_back(2);
+    quadIndices->push_back(1);
+    quadIndices->push_back(0);
+    quad->addPrimitiveSet(quadIndices);
+
+//    osg::ref_ptr<osg::Vec4Array> colors( new osg::Vec4Array );
+//    colors->push_back(osg::Vec4(1.0f,1.0f,1.0f,1.0f));
+//    colors->push_back(osg::Vec4(1.0f,1.0f,1.0f,1.0f));
+//    colors->push_back(osg::Vec4(1.0f,1.0f,1.0f,1.0f));
+//    colors->push_back(osg::Vec4(1.0f,1.0f,1.0f,1.0f));
+//    quad->setColorArray(colors);
+//    quad->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
+
+    return quad;
+  }
+
+  ResourceManager() {
+    primatives[ PRIMATIVE_QUAD ] = createQuad();
+  }
 };
+std::shared_ptr<ResourceManager> ResourceManager::_instance;
+
 
 class Geo
 {
@@ -121,6 +171,7 @@ private:
 public:
   Color() : r(1.0f), g(1.0f), b(1.0f), a(1.0f) {}
   Color( float r, float g, float b, float a = 1.0f ) : r(r), g(g), b(b), a(a) {}
+  osg::Vec4 toVec4() { return osg::Vec4(a,b,g,r); }
 
   template <class Archive> void serialize( Archive& ar )
   {
@@ -134,16 +185,23 @@ public:
 class Vector3
 {
 private:
-  float x,y,z;
+  float _x,_y,_z;
+
 public:
-  Vector3() : x(0), y(0), z(0) {}
-  Vector3( float x, float y, float z ) : x(x), y(y), z(z) { }
+  Vector3() : _x(0), _y(0), _z(0) {}
+  Vector3( float x, float y, float z ) : _x(x), _y(y), _z(z) { }
+
+  float& x() { return _x; }
+  float& y() { return _y; }
+  float& z() { return _z; }
+
+  osg::Vec3d toVec3d() { return osg::Vec3d(_y,_z,_x); }
 
   template <class Archive> void serialize( Archive& ar )
   {
-    ar( CEREAL_NVP(x) );
-    ar( CEREAL_NVP(y) );
-    ar( CEREAL_NVP(z) );
+    ar( _CEREAL_NVP("x",_x) );
+    ar( _CEREAL_NVP("y",_y) );
+    ar( _CEREAL_NVP("z",_z) );
   }
 };
 
@@ -161,6 +219,25 @@ private:
 public:
   Light() : color( Color(1.0f,1.0f,1.0f) ), position( Vector3(0,0,0) ), hold(1.0f), period(1.0f), phase(0.0f), ramp_up(0.5f), ramp_down(0.5f) {}
   Light( const Color& c, const Vector3& pos, float period, float phase, float hold, float ramp_up, float ramp_down ) : color(c), position(pos), period(period), phase(phase), hold(hold), ramp_up(ramp_up), ramp_down(ramp_down) {}
+
+  osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node )
+  {
+    std::cout << "Creating light at position " << position.x() << ", " << position.y() << ", " << position.z() << "\n";
+    osg::ref_ptr<osg::PositionAttitudeTransform> tform( new osg::PositionAttitudeTransform );
+    osg::ref_ptr<osg::Billboard> gnode( new osg::Billboard );
+    tform->addChild(gnode);
+    tform->setPosition(position.toVec3d());
+    gnode->setAxis( osg::Vec3(0.0f,0.0f,1.0f));
+    gnode->setNormal( osg::Vec3(0.0f,-1.0f,0.0f));
+    osg::ref_ptr<osg::Material> mat( new osg::Material );
+    mat->setDiffuse( osg::Material::FRONT, osg::Vec4(0,0,0,1) );
+    mat->setSpecular( osg::Material::FRONT, osg::Vec4(0,0,0,1) );
+    mat->setAmbient( osg::Material::FRONT, osg::Vec4(0,0,0,1) );
+    mat->setEmission( osg::Material::FRONT, color.toVec4() );
+    gnode->getOrCreateStateSet()->setAttribute(mat);
+    gnode->addDrawable( ResourceManager::instance()->getPrimative( ResourceManager::PrimativeType::PRIMATIVE_QUAD ) );
+    return tform;
+  }
 
   template <class Archive> void serialize( Archive& ar )
   {
@@ -197,8 +274,10 @@ public:
 
     osg::ref_ptr<osg::LOD> lod(new osg::LOD());
     osg::ref_ptr<osg::Node> root = rootGeo->buildGraph(0);
-    lod->addChild(root.get(),0,keys[0]);
-
+//    lod->addChild(root.get(),0,keys[0]);
+    lod->addChild(root,0,3000);
+    return lod;
+  
     for( int i = 0; i < keys.size()-1; ++i )
     {
       osg::ref_ptr<osg::Node> node = lodGeo[keys[i]]->buildGraph(0);
@@ -278,6 +357,7 @@ public:
   void buildGraph( osg::Node* root )
   {
     root->asGroup()->addChild(object->buildGraph(0));
+    std::for_each( lights.begin(), lights.end(), [&](Light l) { root->asGroup()->addChild(l.buildGraph(0)); });
   } 
   template <class Archive> void serialize( Archive& ar )
   {
@@ -287,15 +367,7 @@ public:
     ar( CEREAL_NVP(lights) );
   }
 };
-/*
-void loadModelDefinition( const std::string& filePath )
-{
-  using boost::property_tree::ptree;
-  std::ifstream ifs( filePath.c_str() );
-  ptree pt;
-  read_xml( ifs, pt );
-}
-*/
+
 void saveModelDefinition( ModelDefinition& obj, const std::string& path )
 {
   std::ofstream os( path.c_str() );
@@ -355,34 +427,18 @@ void writeTestModelDefinition()
   saveModelDefinition( d, "test.json" );
 }
 
-void buildGraphFromModelDefinition( const ModelDefinition& def, osg::Group* root )
-{
-/*  
-*/
-}
-
-osg::ref_ptr<osg::Node> getModel()
-{
-  osg::ref_ptr<osg::Node> model = osgDB::readNodeFile( "tools/decompiled/fig02_5.obj" );
-  return model;
-}
-
-osg::ref_ptr<osg::Node> applyImage( osg::ref_ptr<osg::Node> model )
-{
-  osg::ref_ptr<osg::Image> img = osgDB::readImageFile( "tools/decompiled/fig02bmp.png" );
-  osg::ref_ptr<osg::Texture2D> tex = new osg::Texture2D(img);
-  model->getOrCreateStateSet()->setTextureAttributeAndModes( 0, tex.get(), osg::StateAttribute::ON );
-  return model;
-}
-
 int main( int argc, char** argv )
 {
+  if( argc < 2 )
+  {
+    std::cout << "Need a file\n";
+    return 0;
+  }
   osgViewer::Viewer viewer;
 
   osg::ref_ptr<osg::Group> root( new osg::Group );
   std::string base("tools/decompiled/");
   std::string name(argv[1]);
-  std::string offset(argv[2]);
   ResourceBase::setResourceBase(base); 
 
 //  writeTestModelDefinition();
@@ -390,12 +446,6 @@ int main( int argc, char** argv )
   ModelDefinition d2;
   loadModelDefinition( d2, base + name + ".json" );
   d2.buildGraph( root.get() );
-
-//  root->addChild( applyImage( getModel() ) );
-
-//  MeshGeo m( "fig02_5.obj" );
-//  Image img( "fig02bmp.png" );
-//  root->addChild( Image("fig02bmp.png").buildGraph( MeshGeo("fig02_5.obj").buildGraph(0) ) );
 
   osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> cameraManip( new osgGA::KeySwitchMatrixManipulator );
   viewer.setSceneData(root.get());
