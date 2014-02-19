@@ -7,7 +7,7 @@ CFLAGS=-std=gnu++11 -ggdb -O0
 
 all: ../fa
 
-../mdlviewer: mdlviewer.o
+../mdlviewer: mdlviewer.o color.o frame.o geo.o group_geo.o image.o light.o lod_geo.o mesh_geo.o model_definition.o resource_base.o resource_manager.o texture_geo.o vector3.o
 	$(CC) -o../mdlviewer mdlviewer.o $(PC_LIBS)
 
 ../fa: main.o
@@ -16,7 +16,7 @@ all: ../fa
 main.o: main.cpp
 	$(CC) $(CFLAGS) -c main.cpp
 
-mdlviewer.o: mdlviewer.cpp
+*.o: *.cpp
 	$(CC) $(CFLAGS) -I$(DEP_INCLUDE) -c mdlviewer.cpp
 	
 clean:

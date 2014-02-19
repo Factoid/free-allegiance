@@ -116,6 +116,12 @@ class LODGeo(Geo):
   def __init__(self,stack):
     self.rootGeo = UniquePtr(stack.pop())
     self.lodGeo = stack.pop()
+#LOD Order seems to be reversed
+    for i in range(int(len(self.lodGeo)/2)):
+      tmp = self.lodGeo[i]["value"]
+      self.lodGeo[i]["value"] = self.lodGeo[-(i+1)]["value"]
+      self.lodGeo[-(i+1)]["value"] = tmp
+
     for l in self.lodGeo:
       l["value"] = SharedPtr(l["value"])
 
@@ -239,6 +245,9 @@ class TextureGeo(Geo):
     self.geo = UniquePtr(stack.pop())
     self.image = stack.pop()
 
+  def __str__(self):
+    return "TextureGeo (" + self.geo.ptr_wrapper.data + ", " + self.image + ")"
+
 class TextureGeoFactory:
   def apply(self,stack):
     return TextureGeo(stack);
@@ -334,7 +343,7 @@ class MDLFile:
     count = self.read_dword()
     lData = []
     for i in range(count):
-      lData.append(self.read_object())
+      lData.insert(0,self.read_object())
     return lData
 
   def read_pair(self,stack):
