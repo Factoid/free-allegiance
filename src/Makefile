@@ -5,19 +5,11 @@ DEP_INCLUDE=../deps/cereal/include
 CC=g++
 CFLAGS=-std=gnu++11 -ggdb -O0
 
-all: ../fa
+objects = mdlviewer.o model_definition.o
+#color.o frame.o geo.o group_geo.o image.o light.o lod_geo.o mesh_geo.o model_definition.o resource_base.o resource_manager.o texture_geo.o vector3.o 
 
-../mdlviewer: mdlviewer.o color.o frame.o geo.o group_geo.o image.o light.o lod_geo.o mesh_geo.o model_definition.o resource_base.o resource_manager.o texture_geo.o vector3.o
-	$(CC) -o../mdlviewer mdlviewer.o $(PC_LIBS)
+mdlviewer: $(objects) 
+	$(CC) -o $@ $< $(PC_LIBS)
 
-../fa: main.o
-	$(CC) -o../fa main.o $(PC_LIBS)
-
-main.o: main.cpp
-	$(CC) $(CFLAGS) -c main.cpp
-
-*.o: *.cpp
-	$(CC) $(CFLAGS) -I$(DEP_INCLUDE) -c mdlviewer.cpp
-	
-clean:
-	rm ../fa main.o
+$(objects): %.o: %.cpp
+	$(CC) $(CFLAGS) -I$(DEP_INCLUDE) -c $< -o $@

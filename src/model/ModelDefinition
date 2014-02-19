@@ -1,0 +1,31 @@
+#ifndef __MODEL_DEFINITION_H__
+#define __MODEL_DEFINITION_H__
+
+#include "Frame"
+#include "Geo"
+#include "Light"
+
+class ModelDefinition
+{
+private:
+  float frame;
+  std::vector<Frame> frames;
+  std::unique_ptr<Geo> object;
+  std::vector<Light> lights;
+
+public:
+  ModelDefinition();
+  void buildGraph( osg::Node* root );
+  template <class Archive> void serialize( Archive& ar )
+  {
+    ar( CEREAL_NVP(frame) );
+    ar( CEREAL_NVP(frames) );
+    ar( CEREAL_NVP(object) );
+    ar( CEREAL_NVP(lights) );
+  }
+
+  void save( const std::string& path ) const;
+  void load( const std::string& path );
+};
+
+#endif

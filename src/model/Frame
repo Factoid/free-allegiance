@@ -1,3 +1,9 @@
+#ifndef __FRAME_H__
+#define __FRAME_H__
+
+#include "Vector3"
+#include <cereal/archives/json.hpp>
+
 class Frame
 {
 private:
@@ -7,8 +13,9 @@ private:
   Vector3 forward;
 
 public:
-  Frame() {}
-  Frame( const std::string& name, const Vector3& pos, const Vector3& up, const Vector3& forward ) : name(name), position(pos), up(up), forward(forward) {} 
+  Frame();
+  Frame( const std::string& name, const Vector3& pos, const Vector3& up, const Vector3& forward );
+
   template <class Archive> void serialize( Archive& ar )
   {
     ar(CEREAL_NVP(name));
@@ -17,3 +24,5 @@ public:
     ar(CEREAL_NVP(forward));
   }
 };
+
+#endif
