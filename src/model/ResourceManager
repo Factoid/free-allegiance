@@ -1,0 +1,29 @@
+#ifndef __RESOURCE_MANAGER_H__
+#define __RESOURCE_MANAGER_H__
+
+#include <osg/Drawable>
+#include <osg/Geometry>
+#include <memory>
+#include <osg/Image>
+#include <string>
+
+class ResourceManager
+{
+public:
+  enum PrimativeType { PRIMATIVE_QUAD };
+  static std::shared_ptr<ResourceManager> instance();
+  osg::ref_ptr<osg::Drawable> getPrimative( ResourceManager::PrimativeType type );
+  osg::ref_ptr<osg::Image> getImage( const std::string& name );
+
+private:
+  typedef std::map< std::string, osg::ref_ptr<osg::Image> > ImageMap;
+
+  static std::shared_ptr<ResourceManager> _instance;
+  std::map< PrimativeType, osg::ref_ptr<osg::Geometry> > primatives;
+  ImageMap images;
+
+  osg::ref_ptr<osg::Geometry> createQuad();
+  ResourceManager();
+};
+
+#endif

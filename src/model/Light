@@ -1,0 +1,38 @@
+#ifndef __LIGHT_H__
+#define __LIGHT_H__
+
+#include "Color"
+#include "Vector3"
+#include <osg/Node>
+#include <cereal/archives/json.hpp>
+
+class Light
+{
+private:
+  float hold;
+  float period;
+  float phase;
+  float ramp_up;
+  float ramp_down;
+  Color color;
+  Vector3 position;
+
+public:
+  Light();
+  Light( const Color& c, const Vector3& pos, float period, float phase, float hold, float ramp_up, float ramp_down );
+  osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node );
+  template <class Archive> void serialize( Archive& ar )
+  {
+    ar( CEREAL_NVP(hold) );
+    ar( CEREAL_NVP(period) );
+    ar( CEREAL_NVP(phase) );
+    ar( CEREAL_NVP(ramp_up) );
+    ar( CEREAL_NVP(ramp_down) );
+    ar( CEREAL_NVP(color) );
+    ar( CEREAL_NVP(position) );
+  }
+
+  std::string toString() const;
+};
+
+#endif

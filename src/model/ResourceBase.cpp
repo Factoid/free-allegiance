@@ -1,24 +1,13 @@
-class ResourceBase
+#include "ResourceBase"
+#include <cereal/types/polymorphic.hpp>
+
+ResourceBase::ResourceBase( const std::string& path ) : resourcePath(path) {}
+ResourceBase::ResourceBase() {}
+ResourceBase::~ResourceBase() {}
+void ResourceBase::setResourceBase( const std::string& b )
 {
-public:
-  ResourceBase( const std::string& path ) : resourcePath(path) {}
-  ResourceBase() {}
-  virtual ~ResourceBase() {}
-
-  static void setResourceBase( const std::string& b )
-  {
-    resourceBase = b;
-  }
-  
-  template <class Archive> void serialize( Archive& ar )
-  {
-    ar( CEREAL_NVP(resourcePath) );
-  }
-
-protected:
-  static std::string resourceBase;
-  std::string resourcePath;
-};
+  resourceBase = b;
+}
 
 std::string ResourceBase::resourceBase;
 

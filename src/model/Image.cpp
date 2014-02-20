@@ -1,13 +1,15 @@
-class Image : public ResourceBase
+#include "Image"
+#include "ResourceManager"
+#include <osg/Image>
+#include <osg/Texture2D>
+#include <osgDB/ReadFile>
+
+Image::Image() {}
+Image::Image( const std::string& v ) : ResourceBase(v) {}
+osg::ref_ptr<osg::Node> Image::buildGraph( osg::ref_ptr<osg::Node> node )
 {
-public:
-  Image() {}
-  Image( const std::string& v ) : ResourceBase(v) {}
-  osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node )
-  {
-    osg::ref_ptr<osg::Image> img = osgDB::readImageFile( resourceBase + resourcePath );
-    osg::ref_ptr<osg::Texture2D> tex = new osg::Texture2D(img);
-    node->getOrCreateStateSet()->setTextureAttributeAndModes( 0, tex.get(), osg::StateAttribute::ON );
-    return node;
-  }
-};
+  osg::ref_ptr<osg::Image> img = ResourceManager::instance()->getImage( resourceBase + resourcePath );
+  osg::ref_ptr<osg::Texture2D> tex = new osg::Texture2D(img);
+  node->getOrCreateStateSet()->setTextureAttributeAndModes( 0, tex, osg::StateAttribute::ON );
+  return node;
+}

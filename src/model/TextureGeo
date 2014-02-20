@@ -1,0 +1,30 @@
+#ifndef __TEXTURE_GEO_H__
+#define __TEXTURE_GEO_H__
+
+#include <memory>
+#include "Image"
+#include "Geo"
+#include <string>
+#include <osg/Node>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
+
+class TextureGeo : public Geo
+{
+public:
+  std::unique_ptr<Geo> geo;
+  Image image;
+   
+public:
+  TextureGeo();
+  TextureGeo( Geo* geo, const std::string& img );
+
+  osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node );
+  template <class Archive> void serialize( Archive& ar )
+  {
+    ar( CEREAL_NVP(geo) );
+    ar( CEREAL_NVP(image) );
+  }
+};
+
+#endif

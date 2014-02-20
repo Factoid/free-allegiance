@@ -1,0 +1,22 @@
+#ifndef __MESH_GEO_H__
+#define __MESH_GEO_H__
+
+#include "Geo"
+#include "ResourceBase"
+#include <osg/Node>
+#include <cereal/archives/json.hpp>
+
+class MeshGeo : public Geo, public ResourceBase
+{
+public:
+  MeshGeo();
+  MeshGeo( const std::string& v );
+  osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node );
+  
+  template <class Archive> void serialize( Archive& ar ) {
+    ResourceBase::serialize(ar);
+    Geo::serialize(ar);
+  }
+};
+
+#endif

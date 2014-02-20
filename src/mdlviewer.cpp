@@ -1,9 +1,8 @@
+/*
 #include <osg/Node>
 #include <osg/Group>
 #include <osg/PositionAttitudeTransform>
 #include <osg/Material>
-#include <osgViewer/Viewer>
-#include <osgGA/KeySwitchMatrixManipulator>
 #include <osgDB/ReadFile>
 #include <osg/Texture2D>
 #include <string>
@@ -21,9 +20,16 @@
 #include <cereal/types/map.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/polymorphic.hpp>
+*/
 
+#include <osgViewer/Viewer>
+#include <osgGA/KeySwitchMatrixManipulator>
 #include "model/ModelDefinition"
+#include "model/Color"
+#include "model/LODGeo"
+#include "model/ResourceBase"
 
+/*
 void writeTestModelDefinition()
 {
   ModelDefinition d;
@@ -68,6 +74,7 @@ void writeTestModelDefinition()
   
   saveModelDefinition( d, "test.json" );
 }
+*/
 
 int main( int argc, char** argv )
 {
@@ -86,7 +93,7 @@ int main( int argc, char** argv )
 //  writeTestModelDefinition();
  
   ModelDefinition d2;
-  loadModelDefinition( d2, base + name + ".json" );
+  d2.load( base + name + ".json" );
   d2.buildGraph( root.get() );
 
   osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> cameraManip( new osgGA::KeySwitchMatrixManipulator );
