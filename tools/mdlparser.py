@@ -4,6 +4,7 @@ import sys
 import io
 import jsonpickle
 import json
+import os
 from PIL import Image
 
 class Ptr(object):
@@ -235,13 +236,15 @@ class ImportImage:
     self.__dict__.update(state)
 
   def write_png(self,path):
+    if os.path.isfile(path): return
+
     print("Writing image",self.name)
     print("Info",self.info)
     img = Image.new("RGBA",(self.info.size.x,self.info.size.y))
     colors = []
     for y in range(self.info.size.y):
       for x in range(self.info.size.x):
-        c = self.pixdata[y*self.info.pitch+x] << 8 | self.pixdata[y*self.info.pitch+x+1]
+        c = self.pixdata[y*self.info.pitch+x*2] << 8 | self.pixdata[y*self.info.pitch+x*2+1]
         colors.append( self.info.get_rgb(c) )
 
 #    ptups = zip( self.pixdata[0::2], self.pixdata[1::2] )

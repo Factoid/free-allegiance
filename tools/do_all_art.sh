@@ -2,11 +2,10 @@
 for f in ../Artwork/*.mdl
 do
   echo "Processing "$f
-  ./mdlparser.py `basename ${f%.*}` 2> /dev/null
+  ./mdlparser.py `basename ${f%.*}` > /dev/null 2> /dev/null
   rc=$?
   if [[ $rc != 0 ]]; then
-    echo "Failed on file "$f
-    exit $rc
+    echo "Failed on file "$f >> failures.txt
   fi
 done
 
