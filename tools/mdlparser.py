@@ -222,11 +222,12 @@ class BinarySurfaceInfo:
 
 class ImportImage:
   def __init__(self,reader):
+    print("Reading image data")
     self.namespace = reader.namespace
     self.name = reader.namespace + ".png"
     self.info = BinarySurfaceInfo(reader)
-    self.pixdata = reader.f.read(self.info.pitch * self.info.size.y)
     reader.align_bytes()
+    self.pixdata = reader.f.read(self.info.pitch * self.info.size.y)
     self.write_png( "{0}/{1}".format(MDLFile.write_path,self.name) )
 
   def __getstate__(self):
@@ -236,7 +237,7 @@ class ImportImage:
     self.__dict__.update(state)
 
   def write_png(self,path):
-    if os.path.isfile(path): return
+    #if os.path.isfile(path): return
 
     print("Writing image",self.name)
     print("Info",self.info)
@@ -244,7 +245,7 @@ class ImportImage:
     colors = []
     for y in range(self.info.size.y):
       for x in range(self.info.size.x):
-        c = self.pixdata[y*self.info.pitch+x*2] << 8 | self.pixdata[y*self.info.pitch+x*2+1]
+        c = self.pixdata[y*self.info.pitch+x*2] | self.pixdata[y*self.info.pitch+x*2+1] << 8
         colors.append( self.info.get_rgb(c) )
 
 #    ptups = zip( self.pixdata[0::2], self.pixdata[1::2] )
@@ -405,7 +406,8 @@ class MDLFile:
 #    self.get_geo().to_obj(path)
 
   def align_bytes(self):
-    skip = 3-((self.f.tell()-1)%4) 
+    skip = 3-((self.f.tell()-1)%4)
+    print("Skipping",skip,"bytes")
     self.f.read(skip)
 
   def write_json(self):

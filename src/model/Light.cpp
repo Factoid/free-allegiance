@@ -5,8 +5,9 @@
 #include <osg/Material>
 #include <osg/PositionAttitudeTransform>
 #include <osg/TexEnv>
+#include <osg/BlendFunc>
 
-Image lightImg( "light.png" );
+Image lightImg( "f101bmp.png" );
 
 Light::Light() : color( Color(1.0f,1.0f,1.0f) ), position( Vector3(0,0,0) ), hold(1.0f), period(1.0f), phase(0.0f), ramp_up(0.5f), ramp_down(0.5f) {}
 Light::Light( const Color& c, const Vector3& pos, float period, float phase, float hold, float ramp_up, float ramp_down ) : color(c), position(pos), period(period), phase(phase), hold(hold), ramp_up(ramp_up), ramp_down(ramp_down) {}
@@ -26,9 +27,12 @@ osg::ref_ptr<osg::Node> Light::buildGraph( osg::ref_ptr<osg::Node> node )
   mat->setEmission( osg::Material::FRONT, color.toVec4() );
   lightImg.buildGraph(tform);
 
+  osg::ref_ptr<osg::BlendFunc> trans( new osg::BlendFunc );
+  trans->setFunction( osg::BlendFunc::ONE, osg::BlendFunc::ONE );
   gnode->getOrCreateStateSet()->setMode(GL_BLEND,osg::StateAttribute::ON);
   gnode->getOrCreateStateSet()->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
   gnode->getOrCreateStateSet()->setAttribute(mat);
+  gnode->getOrCreateStateSet()->setAttribute(trans);
   gnode->addDrawable( ResourceManager::instance()->getPrimative( ResourceManager::PrimativeType::PRIMATIVE_QUAD ) );
   return tform;
 }

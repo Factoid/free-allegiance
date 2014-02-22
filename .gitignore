@@ -12,3 +12,4 @@ mdlviewer
 Artwork/
 tools/decompiled/
 deps/cereal
+tools/failures.txt

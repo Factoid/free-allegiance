@@ -9,7 +9,7 @@ osg::ref_ptr<osg::Node> LODGeo::buildGraph( osg::ref_ptr<osg::Node> node ) {
   std::vector<float> keys;
   std::transform( lodGeo.begin(), lodGeo.end(), std::back_inserter( keys ), [](std::pair<float,std::shared_ptr<Geo> > p ){ return p.first; });
   std::sort( keys.begin(), keys.end() );
-  keys.push_back(300);
+  keys.push_back(3000);
 
   osg::ref_ptr<osg::LOD> lod(new osg::LOD());
   osg::ref_ptr<osg::Node> root = rootGeo->buildGraph(0);
