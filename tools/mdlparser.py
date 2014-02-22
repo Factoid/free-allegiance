@@ -189,6 +189,9 @@ class MeshGeo(Geo):
         f.write( "f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}\n".format(face[0],face[1],face[2]) )
 
 class Point:
+  def __str__(self):
+    return "x: " + str(self.x) + " y: " + str(self.y)
+
   def __init__(self,reader):
     self.x, self.y = struct.unpack("ii",reader.f.read(8))
 
@@ -202,6 +205,9 @@ def to_range(c,mask):
   return int(float(v)/float(mask)*255)
 
 class BinarySurfaceInfo:
+  def __str__(self):
+    return "Surface: " + str(self.size) + " pitch : " + str(self.pitch) + " bit count : " + str(self.bitCount)
+
   def __init__(self,reader):
     self.size = Point(reader)
     self.pitch, self.bitCount, self.redMask, self.greenMask, self.blueMask, self.alphaMask, self.colorKeyed = struct.unpack( "hIIIII?", reader.f.read(25) )
@@ -229,13 +235,20 @@ class ImportImage:
     self.__dict__.update(state)
 
   def write_png(self,path):
+    print("Writing image",self.name)
+    print("Info",self.info)
     img = Image.new("RGBA",(self.info.size.x,self.info.size.y))
-    
-    ptups = zip( self.pixdata[0::2], self.pixdata[1::2] )
     colors = []
-    for p in ptups:
-      c = p[0] << 8 | p[1]
-      colors.append(self.info.get_rgb(c))
+    for y in range(self.info.size.y):
+      for x in range(self.info.size.x):
+        c = self.pixdata[y*self.info.pitch+x] << 8 | self.pixdata[y*self.info.pitch+x+1]
+        colors.append( self.info.get_rgb(c) )
+
+#    ptups = zip( self.pixdata[0::2], self.pixdata[1::2] )
+#    for p in ptups:
+#      c = p[0] << 8 | p[1]
+#      colors.append(self.info.get_rgb(c))
+    print( "Num pixels", len(colors), "dimensions", str(self.info.size.x*self.info.size.y) )
     img.putdata(colors)
     img.save(path)
 
