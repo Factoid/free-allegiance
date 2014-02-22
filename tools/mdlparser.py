@@ -49,8 +49,15 @@ class ModifiableNumberFactory:
     return stack.pop()
 
 class Vector3:
-  def __init__(self,reader):
-    self.x, self.y, self.z = struct.unpack( "fff", reader.f.read(4*3) )
+  def __init__(self,x,y,z):
+    self.x = x
+    self.y = y
+    self.z = z
+
+  @classmethod
+  def fromReader(cls,reader):
+    x, y, z = struct.unpack( "fff", reader.f.read(4*3) )
+    return cls(x,y,z)
 
 class UV:
   def __init__(self,reader):
@@ -59,15 +66,14 @@ class UV:
 
 class Color:
   def __init__(self,reader):
-    self.r, self.g, self.b = struct.unpack( "fff", reader.f.read(4*3) )
-    self.a = 1.0
+    self.r, self.g, self.b, self.a = struct.unpack( "ffff", reader.f.read(4*4) )
 
 class Light:
   def __init__(self,reader):
     self.color = Color(reader)
-    self.position = Vector3(reader)
+    p = Vector3.fromReader(reader)
+    self.position = p
     self.period, self.phase, self.ramp_up, self.hold, self.ramp_down = struct.unpack( "fffff", reader.f.read(4*5) )
-    reader.f.read(4) ## byte align
 
 class LightsGeoFactory:
   def read(self,reader,stack):
@@ -87,10 +93,10 @@ class TimeFactory:
 class Frame:
   def __init__(self,reader):
     self.name = reader.read_string()
-    self.position = Vector3(reader)
-    self.forward = Vector3(reader)
+    self.position = Vector3.fromReader(reader)
+    self.forward = Vector3.fromReader(reader)
 
-    self.up = Vector3(reader)
+    self.up = Vector3.fromReader(reader)
 
 class FrameDataFactory:
   def read(self,reader,stack):
@@ -131,9 +137,9 @@ class LODGeoFactory:
 
 class Vertex:
   def __init__(self,reader):
-    self.pos = Vector3(reader)
+    self.pos = Vector3.fromReader(reader)
     self.tex = UV(reader)
-    self.normal = Vector3(reader)
+    self.normal = Vector3.fromReader(reader)
 
 class MeshGeoFactory:
   def read(self,reader,stack):
@@ -145,8 +151,6 @@ class MeshGeo(Geo):
   mesh_num = 0
 
   def __init__(self,reader):
-    print( "Creating MeshGeo object" )
-
     self.resourcePath = "{0}_{1}.obj".format(reader.namespace,MeshGeo.mesh_num)
     MeshGeo.mesh_num += 1
     
@@ -171,7 +175,6 @@ class MeshGeo(Geo):
 
   def to_obj(self,path,verts,indices):
     with open(path,"w") as f:
-      print("Num verts %i, Num Faces %i to %s" % (len(verts),len(indices)/3,path))
       for v in verts:
         f.write( "v {0} {1} {2}\n".format(v.pos.x,v.pos.y,v.pos.z) )
         f.write( "vt {0} {1}\n".format(v.tex.u,v.tex.v) )
@@ -260,8 +263,8 @@ class NamespaceManager:
     try:
       return NamespaceManager.objects[namespace][libname]
     except KeyError:
-      print( "Couldn't find", namespace, libname )
-      print( "Attempting to add {0}.mdl".format(libname) )
+      #print( "Couldn't find", namespace, libname )
+      #print( "Attempting to add {0}.mdl".format(libname) )
       NamespaceManager.add( namespace, libname, MDLFile("../Artwork/{0}.mdl".format(libname),namespace).objects[libname])
       return NamespaceManager.objects[namespace][libname]
 
@@ -376,20 +379,22 @@ class MDLFile:
     obj = stack.pop()
     return obj.read(self,stack)
 
-  def get_img(self):
-    return self.objects['object'].get_img()
-
-  def get_geo(self):
-    return self.objects['object'].get_geo()
-
-  def export_meshes(self,path):
-    self.get_geo().to_obj(path)
+#  def get_img(self):
+#    return self.objects['object'].get_img()
+#
+#  def get_geo(self):
+#    return self.objects['object'].get_geo()
+#
+#  def export_meshes(self,path):
+#    self.get_geo().to_obj(path)
 
   def align_bytes(self):
     skip = 3-((self.f.tell()-1)%4) 
     self.f.read(skip)
 
   def write_json(self):
+    if "object" not in self.objects: return
+
     with open( "/".join([MDLFile.write_path,self.namespace])+".json", "w" ) as f:
       jsonpickle.set_encoder_options('json', indent=4, sort_keys=True)
       json_str = jsonpickle.encode(self,False)

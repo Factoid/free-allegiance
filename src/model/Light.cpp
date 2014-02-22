@@ -26,8 +26,6 @@ osg::ref_ptr<osg::Node> Light::buildGraph( osg::ref_ptr<osg::Node> node )
   mat->setEmission( osg::Material::FRONT, color.toVec4() );
   lightImg.buildGraph(tform);
 
-//  osg::ref_ptr<osg::TexEnv> texEnv( new osg::TexEnv(osg::TexEnv::Mode::BLEND ) );
-//  gnode->getOrCreateStateSet()->setAttribute(texEnv);
   gnode->getOrCreateStateSet()->setMode(GL_BLEND,osg::StateAttribute::ON);
   gnode->getOrCreateStateSet()->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
   gnode->getOrCreateStateSet()->setAttribute(mat);

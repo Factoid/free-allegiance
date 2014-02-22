@@ -7,4 +7,5 @@ float& Vector3::x() { return _x; }
 float& Vector3::y() { return _y; }
 float& Vector3::z() { return _z; }
 
-osg::Vec3d Vector3::toVec3d() { return osg::Vec3d(_y,_z,_x); }
+//osg::Vec3d Vector3::toVec3d() { return osg::Vec3d(_y,_z,_x); }
+osg::Vec3d Vector3::toVec3d() { return osg::Vec3d(_x,_y,_z); }
