@@ -14,7 +14,6 @@ Light::Light( const Color& c, const Vector3& pos, float period, float phase, flo
 
 osg::ref_ptr<osg::Node> Light::buildGraph( osg::ref_ptr<osg::Node> node )
 {
-  std::cout << "Creating light at position " << position.x() << ", " << position.y() << ", " << position.z() << "\n";
   osg::ref_ptr<osg::PositionAttitudeTransform> tform( new osg::PositionAttitudeTransform );
   osg::ref_ptr<osg::Billboard> gnode( new osg::Billboard );
   tform->addChild(gnode);

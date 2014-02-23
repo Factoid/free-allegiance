@@ -5,7 +5,7 @@ import io
 import jsonpickle
 import json
 import os
-from PIL import Image
+import PIL.Image
 
 class Ptr(object):
   pass
@@ -193,8 +193,18 @@ class Point:
   def __str__(self):
     return "x: " + str(self.x) + " y: " + str(self.y)
 
-  def __init__(self,reader):
+  def __init__(self):
+    pass
+
+  def clone(self):
+    copy = Point()
+    copy.x = self.x
+    copy.y = self.y
+    return copy
+    
+  def fromReader(self,reader):
     self.x, self.y = struct.unpack("ii",reader.f.read(8))
+    return self
 
 def to_range(c,mask):
   v = c & mask
@@ -209,9 +219,25 @@ class BinarySurfaceInfo:
   def __str__(self):
     return "Surface: " + str(self.size) + " pitch : " + str(self.pitch) + " bit count : " + str(self.bitCount)
 
-  def __init__(self,reader):
-    self.size = Point(reader)
+  def __init__(self):
+    pass
+
+  def clone(self):
+    copy = BinarySurfaceInfo()
+    copy.size = self.size.clone()
+    copy.pitch = self.pitch
+    copy.bitCount = self.bitCount
+    copy.redMask = self.redMask
+    copy.greenMask = self.greenMask
+    copy.blueMask = self.blueMask
+    copy.alphaMask = self.alphaMask
+    copy.colorKeyed = self.colorKeyed
+    return copy
+    
+  def fromReader(self,reader):
+    self.size = Point().fromReader(reader)
     self.pitch, self.bitCount, self.redMask, self.greenMask, self.blueMask, self.alphaMask, self.colorKeyed = struct.unpack( "hIIIII?", reader.f.read(25) )
+    return self
 
   def get_rgb(self, c):
     r = to_range(c,self.redMask)
@@ -220,15 +246,75 @@ class BinarySurfaceInfo:
     a = to_range(c,self.alphaMask)
     return (r,g,b,a)
 
-class ImportImage:
-  def __init__(self,reader):
+class FrameImage:
+  def __init__(self,frame,bgImage,reader):
+    self.bgImage = bgImage
+    self.nFrame = reader.read_dword()
+    print( "Frames =",self.nFrame)
+    print( "BGImage =",self.bgImage)
+    offsets = []
+    for i in range(self.nFrame):
+      offsets.append(reader.read_dword())
+    print( "Offsets =",offsets)
+    memBuf = reader.f.read(offsets[-1]) 
+    print( "Membuf is",len(memBuf),"bytes" )
+    for i in range(self.nFrame-1):
+      clone = self.bgImage.clone()
+      clone.name = clone.namespace + "_" + str(i) + ".png"
+      clone.extractRLEData(memBuf[offsets[i]:offsets[i+1]])
+      clone.save_png()
+
+class FrameImageFactory:
+  def read(self,reader,stack):
+    frame = stack.pop()
+    img = stack.pop()
+    return FrameImage(frame,img,reader)
+
+class Image:
+  def __init__(self):
+    pass
+  
+  def clone(self):
+    copy = Image()
+    copy.namespace = self.namespace
+    copy.name = self.name
+    copy.info = self.info.clone()
+    copy.pixdata = self.pixdata[:]
+    return copy
+
+  def extractRLEData(self,rleBuffer):
+    RLELengthMask = 0x3fff
+    RLEMask = 0xc000
+    RLEMaskFill = 0x0000
+    RLEMaskByte = 0x4000
+    RLEMaskWord = 0x8000
+    RLEMaskDWord = 0xc000
+
+    rPtr = 0
+    wPtr = 0
+    while rPtr < len(rleBuffer):
+      word = rleBuffer[rPtr] | rleBuffer[rPtr+1] << 8
+      length = word & RLELengthMask
+      break
+      
+
+  def save_png(self):
+    self.write_png( "{0}/{1}".format(MDLFile.write_path,self.name) )
+
+  def fromReader(self,reader):
     print("Reading image data")
     self.namespace = reader.namespace
     self.name = reader.namespace + ".png"
-    self.info = BinarySurfaceInfo(reader)
+    self.info = BinarySurfaceInfo().fromReader(reader)
     reader.align_bytes()
-    self.pixdata = reader.f.read(self.info.pitch * self.info.size.y)
-    self.write_png( "{0}/{1}".format(MDLFile.write_path,self.name) )
+
+    rawpixdata = reader.f.read(self.info.pitch * self.info.size.y)
+    self.pixdata = []
+    for i in range(self.info.size.y):
+      self.pixdata.extend(rawpixdata[self.info.pitch*i:self.info.pitch*i+self.info.size.x*2])
+
+    self.save_png()
+    return self
 
   def __getstate__(self):
     return { 'resourcePath' : self.name }
@@ -241,24 +327,20 @@ class ImportImage:
 
     print("Writing image",self.name)
     print("Info",self.info)
-    img = Image.new("RGBA",(self.info.size.x,self.info.size.y))
+    img = PIL.Image.new("RGBA",(self.info.size.x,self.info.size.y))
     colors = []
-    for y in range(self.info.size.y):
-      for x in range(self.info.size.x):
-        c = self.pixdata[y*self.info.pitch+x*2] | self.pixdata[y*self.info.pitch+x*2+1] << 8
-        colors.append( self.info.get_rgb(c) )
+    ptups = zip( self.pixdata[0::2], self.pixdata[1::2] )
+    for p in ptups:
+      c = p[0] | p[1] << 8
+      colors.append(self.info.get_rgb(c))
 
-#    ptups = zip( self.pixdata[0::2], self.pixdata[1::2] )
-#    for p in ptups:
-#      c = p[0] << 8 | p[1]
-#      colors.append(self.info.get_rgb(c))
     print( "Num pixels", len(colors), "dimensions", str(self.info.size.x*self.info.size.y) )
     img.putdata(colors)
     img.save(path)
 
 class ImportImageFactory:
   def read(self,reader,stack):
-    return ImportImage(reader)
+    return Image().fromReader(reader)
 
 class TextureGeo(Geo):
   def __init__(self,stack):
@@ -325,7 +407,7 @@ class MDLFile:
       for i in range(numImports):
         nsLibIndex = self.read_dword()
         nsLibName = self.read_string()
-        self.objImports[i] = NamespaceManager.find(self.nsImports[nsLibIndex],nsLibName)
+        self.objImports[int(i)] = NamespaceManager.find(self.nsImports[nsLibIndex],nsLibName)
 
       numObjects = numExports + numDefinitions
       self.exportNames = []
@@ -349,7 +431,10 @@ class MDLFile:
       elif token == MDLFile.OBJ_LIST: stack.append( self.read_list() )
       elif token == MDLFile.OBJ_APPLY: stack.append( self.read_apply(stack) )
       elif token == MDLFile.OBJ_BINARY: stack.append( self.read_binary(stack) )
-      elif token == MDLFile.OBJ_REF: stack.append( self.objects[self.read_dword()] )
+      elif token == MDLFile.OBJ_REF:
+        i = self.read_dword()
+        print( "Objects", self.objects, self.exportNames[i] )
+        stack.append( self.objects[self.exportNames[i]] )
       elif token == MDLFile.OBJ_IMPORT: stack.append( self.objImports[self.read_dword()] )
       elif token == MDLFile.OBJ_PAIR: stack.append( self.read_pair(stack) )
       elif token == MDLFile.OBJ_END:
@@ -407,7 +492,6 @@ class MDLFile:
 
   def align_bytes(self):
     skip = 3-((self.f.tell()-1)%4)
-    print("Skipping",skip,"bytes")
     self.f.read(skip)
 
   def write_json(self):
@@ -441,6 +525,7 @@ NamespaceManager.add( "model", "MeshGeo", MeshGeoFactory() )
 NamespaceManager.add( "model", "TextureGeo", TextureGeoFactory() )
 NamespaceManager.add( "model", "ImportImage", ImportImageFactory() )
 NamespaceManager.add( "model", "GroupGeo", GroupGeoFactory() )
+NamespaceManager.add( "model", "FrameImage", FrameImageFactory() )
 MDLFile.write_path = "./decompiled/"
 mdlfile = MDLFile("../Artwork/"+mdlName,rootName)
 mdlfile.write_json()
