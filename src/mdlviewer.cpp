@@ -91,7 +91,7 @@ int main( int argc, char** argv )
   ResourceBase::setResourceBase(base); 
 
 //  writeTestModelDefinition();
- 
+
   ModelDefinition d2;
   d2.load( base + name + ".json" );
   d2.buildGraph( root.get() );

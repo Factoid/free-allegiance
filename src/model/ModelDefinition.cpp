@@ -28,6 +28,10 @@ void ModelDefinition::save( const std::string& path ) const
 void ModelDefinition::load( const std::string& path )
 {
   std::ifstream ifs( path.c_str() );
+  if( !ifs.good() ) {
+    std::cerr << "File " << path << " does not exist.\n";
+    exit(1);
+  }
   cereal::JSONInputArchive archive(ifs);
   archive(*this);
 }

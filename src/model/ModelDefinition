@@ -26,10 +26,22 @@ public:
   void buildGraph( osg::ref_ptr<osg::Node> root );
   template <class Archive> void serialize( Archive& ar )
   {
-    ar( CEREAL_NVP(frame) );
-    ar( CEREAL_NVP(frames) );
-    ar( CEREAL_NVP(object) );
-    ar( CEREAL_NVP(lights) );
+    try
+    {
+      ar( CEREAL_NVP(frame) );
+    } catch(...) {}
+    try
+    {
+      ar( CEREAL_NVP(frames) );
+    } catch(...) {}
+    try
+    {
+      ar( CEREAL_NVP(object) );
+    } catch(...) {}
+    try
+    {
+      ar( CEREAL_NVP(lights) );
+    } catch(...) {}
   }
 
   void save( const std::string& path ) const;
