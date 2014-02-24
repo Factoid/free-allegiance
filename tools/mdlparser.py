@@ -250,17 +250,13 @@ class FrameImage:
   def __init__(self,frame,bgImage,reader):
     self.bgImage = bgImage
     self.nFrame = reader.read_dword()
-    print( "Frames =",self.nFrame)
-    print( "BGImage =",self.bgImage)
     offsets = []
     for i in range(self.nFrame):
       offsets.append(reader.read_dword())
-    print( "Offsets =",offsets)
     memBuf = reader.f.read(offsets[-1]) 
-    print( "Membuf is",len(memBuf),"bytes" )
+    clone = self.bgImage.clone()
     for i in range(self.nFrame-1):
-      clone = self.bgImage.clone()
-      clone.name = clone.namespace + "_" + str(i) + ".png"
+      clone.name = clone.namespace + "_" + str(i+1) + ".png"
       clone.extractRLEData(memBuf[offsets[i]:offsets[i+1]])
       clone.save_png()
 
@@ -279,7 +275,7 @@ class Image:
     copy.namespace = self.namespace
     copy.name = self.name
     copy.info = self.info.clone()
-    copy.pixdata = self.pixdata[:]
+    copy.rawdata = self.rawdata[:]
     return copy
 
   def extractRLEData(self,rleBuffer):
@@ -292,26 +288,49 @@ class Image:
 
     rPtr = 0
     wPtr = 0
+    outBuf = bytearray() 
     while rPtr < len(rleBuffer):
       word = rleBuffer[rPtr] | rleBuffer[rPtr+1] << 8
       length = word & RLELengthMask
-      break
-      
+      cmd = word & RLEMask
+      rPtr += 2
+      if cmd == RLEMaskFill:
+        for i in range(length):
+          outBuf.append(self.rawdata[wPtr] ^ rleBuffer[rPtr])
+          wPtr += 1
+          rPtr += 1
+      elif cmd == RLEMaskByte:
+        byte = rleBuffer[rPtr]
+        rPtr += 1
+        for i in range(length):
+          outBuf.append(self.rawdata[wPtr] ^ byte)
+          wPtr += 1
+      elif cmd == RLEMaskWord:
+        bl = rleBuffer[rPtr:rPtr+2]
+        rPtr += 2
+        for i in range(length):
+          for x in range(2):
+            outBuf.append(self.rawdata[wPtr+x] ^ bl[x])
+          wPtr += 2
+      elif cmd == RLEMaskDWord:
+        bl = rleBuffer[rPtr:rPtr+4]
+        rPtr += 4
+        for i in range(length):
+          for x in range(4):
+            outBuf.append(self.rawdata[wPtr+x] ^ bl[x])
+          wPtr += 4
+    self.rawdata = outBuf
 
   def save_png(self):
     self.write_png( "{0}/{1}".format(MDLFile.write_path,self.name) )
 
   def fromReader(self,reader):
-    print("Reading image data")
     self.namespace = reader.namespace
     self.name = reader.namespace + ".png"
     self.info = BinarySurfaceInfo().fromReader(reader)
     reader.align_bytes()
 
-    rawpixdata = reader.f.read(self.info.pitch * self.info.size.y)
-    self.pixdata = []
-    for i in range(self.info.size.y):
-      self.pixdata.extend(rawpixdata[self.info.pitch*i:self.info.pitch*i+self.info.size.x*2])
+    self.rawdata = reader.f.read(self.info.pitch * self.info.size.y)
 
     self.save_png()
     return self
@@ -325,16 +344,18 @@ class Image:
   def write_png(self,path):
     #if os.path.isfile(path): return
 
-    print("Writing image",self.name)
-    print("Info",self.info)
     img = PIL.Image.new("RGBA",(self.info.size.x,self.info.size.y))
     colors = []
-    ptups = zip( self.pixdata[0::2], self.pixdata[1::2] )
+    
+    pixdata = []
+    for i in range(self.info.size.y):
+      pixdata.extend(self.rawdata[self.info.pitch*i:self.info.pitch*i+self.info.size.x*2])
+    
+    ptups = zip( pixdata[0::2], pixdata[1::2] )
     for p in ptups:
       c = p[0] | p[1] << 8
       colors.append(self.info.get_rgb(c))
 
-    print( "Num pixels", len(colors), "dimensions", str(self.info.size.x*self.info.size.y) )
     img.putdata(colors)
     img.save(path)
 
@@ -373,6 +394,12 @@ class NamespaceManager:
       NamespaceManager.objects[namespace] = {}
     NamespaceManager.objects[namespace][libname] = obj
 
+class NotMDLException(Exception):
+  pass
+
+class BadMDLVersionException(Exception):
+  pass
+
 class MDLFile:
   write_path = ""
   MAGIC = 0xdebadf00
@@ -394,10 +421,12 @@ class MDLFile:
     with io.open(path,"rb") as self.f:
       magic, version, numNameSpaces, numImports, numExports, numDefinitions = struct.unpack("IIIIII",self.f.read(4*6))
       if magic != MDLFile.MAGIC:
-        raise Exception("Not an MDL File")
+        raise NotMDLException
+#("Not an MDL File")
 
       if version != MDLFile.VERSION:
-        raise Exception("Wrong MDL Version")
+        raise BadMDLVersionException
+#("Wrong MDL Version")
 
       self.nsImports = {}
       for i in range(numNameSpaces):
@@ -433,7 +462,6 @@ class MDLFile:
       elif token == MDLFile.OBJ_BINARY: stack.append( self.read_binary(stack) )
       elif token == MDLFile.OBJ_REF:
         i = self.read_dword()
-        print( "Objects", self.objects, self.exportNames[i] )
         stack.append( self.objects[self.exportNames[i]] )
       elif token == MDLFile.OBJ_IMPORT: stack.append( self.objImports[self.read_dword()] )
       elif token == MDLFile.OBJ_PAIR: stack.append( self.read_pair(stack) )
@@ -527,5 +555,8 @@ NamespaceManager.add( "model", "ImportImage", ImportImageFactory() )
 NamespaceManager.add( "model", "GroupGeo", GroupGeoFactory() )
 NamespaceManager.add( "model", "FrameImage", FrameImageFactory() )
 MDLFile.write_path = "./decompiled/"
-mdlfile = MDLFile("../Artwork/"+mdlName,rootName)
-mdlfile.write_json()
+try:
+  mdlfile = MDLFile("../Artwork/"+mdlName,rootName)
+  mdlfile.write_json()
+except NotMDLException:
+  print("ASCII MDL File, skipping")
