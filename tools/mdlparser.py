@@ -383,8 +383,8 @@ class NamespaceManager:
     try:
       return NamespaceManager.objects[namespace][libname]
     except KeyError:
-      #print( "Couldn't find", namespace, libname )
-      #print( "Attempting to add {0}.mdl".format(libname) )
+      print( "Couldn't find", namespace, libname )
+      print( "Attempting to add {0}.mdl".format(libname) )
       NamespaceManager.add( namespace, libname, MDLFile("../Artwork/{0}.mdl".format(libname),namespace).objects[libname])
       return NamespaceManager.objects[namespace][libname]
 
@@ -393,6 +393,90 @@ class NamespaceManager:
     if namespace not in NamespaceManager.objects:
       NamespaceManager.objects[namespace] = {}
     NamespaceManager.objects[namespace][libname] = obj
+  
+class CharData:
+  def fromReader(self,reader):
+    self.size = Point().fromReader(reader)
+    self.offset = reader.read_int()
+    return self
+
+  def setUV(self,x,y,w,h):
+    self.startUV = Point()
+    self.startUV.x = float(x)/w
+    self.startUV.y = float(y)/h
+    
+    self.endUV = Point()
+    self.endUV.x = float(x+self.size.x)/w
+    self.endUV.y = float(y+self.size.y)/h
+
+  def hasRoom(self,dX,width):
+    return dX + self.size.x <= width-1
+
+  def drawCharacter(self,data,dx,dy,img):
+    rPtr = self.offset
+    for y in range(self.size.y):
+      for x in range(int((self.size.x+7)/8)):
+        b = data[rPtr]
+        m = 1
+        for i in range(8):
+          px = (dx+x*8+i,dy+y)
+          if b & m != 0:
+            img.putpixel(px,(255,255,255))
+          m <<= 1
+        rPtr += 1
+
+class Font:
+  def fromReader(self,reader):
+    self.namespace = reader.namespace
+    self.objName = reader.currentObjectName
+    self.height = reader.read_dword()
+    self.width = reader.read_dword()
+    dataSize = reader.read_dword()
+    self.char_data = []
+    for i in range(256):
+      self.char_data.append(CharData().fromReader(reader))
+    data = reader.f.read(dataSize)
+
+    self.generateFontTexture(data)
+    return self
+
+  def generateFontTexture(self,data):
+    texWidth = 256
+    texHeight = 256
+    nCharWide = texWidth / self.width
+    nCharHigh = texHeight / self.height
+
+    if nCharWide * nCharHigh <= 256:
+      texWidth <<= 1
+      nCharWide = texWidth / self.width
+      if nCharWide * nCharHigh <= 256:
+        texHeight <<= 1
+        nCharHigh = texHeight / self.height
+        if nCharWide * nCharHigh <= 256:
+          print( "Texture is too big, aborting" )
+          return
+
+    img = PIL.Image.new("RGB",(texWidth,texHeight))
+    dX = 0
+    dY = 0
+    fTexWidth = float(texWidth-1)
+    fTexHeight = float(texHeight-1)
+    for i in range(256):
+      if not self.char_data[i].hasRoom(dX,texWidth):
+        dX = 0
+        dY += self.height
+      self.char_data[i].setUV(dX,dY,fTexWidth,fTexHeight)
+      self.char_data[i].drawCharacter(data,dX,dY,img)
+      dX += self.char_data[i].size.x
+    
+    path = "{0}{1}.png".format(MDLFile.write_path,self.objName)
+    img.save( path )
+
+class ImportFontFactory:
+  def read(self,reader,stack):
+    font = Font()
+    font.fromReader(reader)
+    return font
 
 class NotMDLException(Exception):
   pass
@@ -415,19 +499,23 @@ class MDLFile:
   OBJ_REF = 8
   OBJ_IMPORT = 9
   OBJ_PAIR = 10
+  token_str = ["OBJ_END","OBJ_FLOAT","OBJ_STRING","OBJ_TRUE","OBJ_FALSE","OBJ_LIST","OBJ_APPLY","OBJ_BINARY","OBJ_REF","OBJ_IMPORT","OBJ_PAIR"]
 
   def __init__(self,path,namespace):
     self.namespace = namespace
     with io.open(path,"rb") as self.f:
-      magic, version, numNameSpaces, numImports, numExports, numDefinitions = struct.unpack("IIIIII",self.f.read(4*6))
+      magic, = struct.unpack("I",self.f.read(4))
+      
       if magic != MDLFile.MAGIC:
         raise NotMDLException
 #("Not an MDL File")
 
+      version, = struct.unpack("I",self.f.read(4))
       if version != MDLFile.VERSION:
         raise BadMDLVersionException
 #("Wrong MDL Version")
 
+      numNameSpaces, numImports, numExports, numDefinitions = struct.unpack("IIII",self.f.read(4*4))      
       self.nsImports = {}
       for i in range(numNameSpaces):
         self.nsImports[i] = self.read_string()
@@ -446,13 +534,15 @@ class MDLFile:
       self.objects = {}
       for i in range(numObjects):
         objIndex = self.read_dword() 
-        obj = self.read_object()
+        obj = self.read_object(self.exportNames[objIndex])
         self.objects[self.exportNames[objIndex]] = obj
           
-  def read_object(self):
+  def read_object(self,objName):
     stack = []
+    self.currentObjectName = objName
     while True:
       token = self.read_dword()
+      #print("Token is",MDLFile.token_str[token])
       if token == MDLFile.OBJ_FLOAT: stack.append( self.read_float() )
       elif token == MDLFile.OBJ_STRING: stack.append( self.read_string() )
       elif token == MDLFile.OBJ_TRUE: stack.append( True )
@@ -471,6 +561,8 @@ class MDLFile:
         else:
           return None
       else: raise Exception("Read Object, bad token {0} at position {1}({2})".format(token,self.f.tell(),hex(self.f.tell())))
+      #print("Stack is now",stack)
+    self.currentObjectName = None
 
   def read_list(self):
     count = self.read_dword()
@@ -484,6 +576,9 @@ class MDLFile:
 
   def read_float(self):
     return struct.unpack("f",self.f.read(4))[0]
+
+  def read_int(self):
+    return struct.unpack("i",self.f.read(4))[0]
 
   def read_dword(self):
     return struct.unpack("I",self.f.read(4))[0]
@@ -509,29 +604,18 @@ class MDLFile:
     obj = stack.pop()
     return obj.read(self,stack)
 
-#  def get_img(self):
-#    return self.objects['object'].get_img()
-#
-#  def get_geo(self):
-#    return self.objects['object'].get_geo()
-#
-#  def export_meshes(self,path):
-#    self.get_geo().to_obj(path)
-
   def align_bytes(self):
     skip = 3-((self.f.tell()-1)%4)
     self.f.read(skip)
 
   def write_json(self):
-    if "object" not in self.objects: return
-
     with open( "/".join([MDLFile.write_path,self.namespace])+".json", "w" ) as f:
       jsonpickle.set_encoder_options('json', indent=4, sort_keys=True)
       json_str = jsonpickle.encode(self,False)
       f.write( json_str )
 
   def __getstate__(self):
-    self.objects['object'] = UniquePtr(self.objects['object'])
+    if "object" in self.objects: self.objects['object'] = UniquePtr(self.objects['object'])
     return { 'value0' : self.objects }
 
   def __setstate__(self,state):
@@ -554,6 +638,7 @@ NamespaceManager.add( "model", "TextureGeo", TextureGeoFactory() )
 NamespaceManager.add( "model", "ImportImage", ImportImageFactory() )
 NamespaceManager.add( "model", "GroupGeo", GroupGeoFactory() )
 NamespaceManager.add( "model", "FrameImage", FrameImageFactory() )
+NamespaceManager.add( "model", "ImportFont", ImportFontFactory() )
 MDLFile.write_path = "./decompiled/"
 try:
   mdlfile = MDLFile("../Artwork/"+mdlName,rootName)
