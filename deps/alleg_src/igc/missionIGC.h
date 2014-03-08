@@ -23,6 +23,17 @@ struct  Constants
     float   damageConstants[c_dmgidMax][c_defidMax];
 };
 
+#ifndef WIN
+template<class T> void empty_list( T& list )
+{
+  while( !list.empty() )
+  {
+    list.front()->Terminate();
+    list.pop_front();
+  }
+}
+#endif
+
 //Define a class that will handle all of the static data (for all missions)
 class   CstaticIGC
 {
@@ -39,95 +50,132 @@ class   CstaticIGC
         }
         void            Terminate(void)
         {
-			//Imago reordered for debugging purposes 8/17/09
-            {
-                TreasureSetLinkIGC*  l;
-				debugf("Nuking %d treasureset(s):\n",m_treasureSets.n());
-                while ((l = m_treasureSets.first()) != NULL)
-                {
-					debugf("\t%s (%i)\n",l->data()->GetName(), l->data()->GetObjectID());
-                    l->data()->Terminate();
-                }
-            }
-            {
-                DroneTypeLinkIGC*  l;
-				debugf("Nuking %d drone types:\n",m_droneTypes.n());
-                while ((l = m_droneTypes.first()) != NULL)
-                {
-					debugf("\t%s (%i)\n",l->data()->GetName(), l->data()->GetObjectID());
-                    l->data()->Terminate();
-                }
-            }
-            {
-                StationTypeLinkIGC*  l;
-                while ((l = m_stationTypes.first()) != NULL)
-                {
-                    l->data()->Terminate();
-                }
-            }
-            {
-                HullTypeLinkIGC*  l;
-                while ((l = m_hullTypes.first()) != NULL)
-                {
-                    l->data()->Terminate();
-                }
-            }
-            {
-                ExpendableTypeLinkIGC*  l;
-                while ((l = m_expendableTypes.first()) != NULL)
-                {
-                    l->data()->Terminate();
-                }
-            }
-            {
-                PartTypeLinkIGC*  l;
-                while ((l = m_partTypes.first()) != NULL)
-                {
-                    l->data()->Terminate();
-                }
-            }
-            {
-                ProjectileTypeLinkIGC*  l;
-                while ((l = m_projectileTypes.first()) != NULL)
-                {
-                    l->data()->Terminate();
-                }
-            }
-            {
-                DevelopmentLinkIGC*  l;
-                while ((l = m_developments.first()) != NULL)
-                {
-                    l->data()->Terminate();
-                }
-            }
-            {
-                CivilizationLinkIGC*  l;
-                while ((l = m_civilizations.first()) != NULL)
-                {
-                    l->data()->Terminate();
-                }
-            }
+          //Imago reordered for debugging purposes 8/17/09
+          {
+#ifdef WIN
+            TreasureSetLinkIGC*  l;
 
-            assert (m_stationTypes.n() == 0);
-            assert (m_hullTypes.n() == 0);
-            assert (m_partTypes.n() == 0);
-            assert (m_projectileTypes.n() == 0);
-            assert (m_developments.n() == 0);
-            assert (m_droneTypes.n() == 0);
-            assert (m_civilizations.n() == 0);
-            assert (m_treasureSets.n() == 0);
-
-            if (m_pptAmmoPack)
+            debugf("Nuking %d treasureset(s):\n",m_treasureSets.n());
+            while ((l = m_treasureSets.first()) != NULL)
             {
-                m_pptAmmoPack->Release();
-                m_pptAmmoPack = NULL;
+              debugf("\t%s (%i)\n",l->data()->GetName(), l->data()->GetObjectID());
+              l->data()->Terminate();
             }
-
-            if (m_pptFuelPack)
+#else
+            empty_list( m_treasureSets );
+#endif
+          }
+          {
+#ifdef WIN
+            DroneTypeLinkIGC*  l;
+            debugf("Nuking %d drone types:\n",m_droneTypes.n());
+            while ((l = m_droneTypes.first()) != NULL)
             {
-                m_pptFuelPack->Release();
-                m_pptFuelPack = NULL;
+              debugf("\t%s (%i)\n",l->data()->GetName(), l->data()->GetObjectID());
+              l->data()->Terminate();
             }
+#else
+            empty_list( m_droneTypes );
+#endif
+          }
+          {
+#ifdef WIN
+            StationTypeLinkIGC*  l;
+            while ((l = m_stationTypes.first()) != NULL)
+            {
+              l->data()->Terminate();
+            }
+#else
+            empty_list( m_stationTypes );
+#endif
+          }
+          {
+#ifdef WIN
+            HullTypeLinkIGC*  l;
+            while ((l = m_hullTypes.first()) != NULL)
+            {
+              l->data()->Terminate();
+            }
+#else
+            empty_list( m_hullTypes );
+#endif
+          }
+          {
+#ifdef WIN
+            ExpendableTypeLinkIGC*  l;
+            while ((l = m_expendableTypes.first()) != NULL)
+            {
+              l->data()->Terminate();
+            }
+#else
+            empty_list( m_expendableTypes );
+#endif
+          }
+          {
+#ifdef WIN
+            PartTypeLinkIGC*  l;
+            while ((l = m_partTypes.first()) != NULL)
+            {
+              l->data()->Terminate();
+            }
+#else
+            empty_list( m_partTypes );
+#endif
+          }
+          {
+#ifdef WIN
+            ProjectileTypeLinkIGC*  l;
+            while ((l = m_projectileTypes.first()) != NULL)
+            {
+              l->data()->Terminate();
+            }
+#else
+            empty_list( m_projectileTypes );
+#endif
+          }
+          {
+#ifdef WIN
+            DevelopmentLinkIGC*  l;
+            while ((l = m_developments.first()) != NULL)
+            {
+              l->data()->Terminate();
+            }
+#else
+            empty_list( m_developments );
+#endif
+          }
+          {
+#ifdef WIN
+            CivilizationLinkIGC*  l;
+            while ((l = m_civilizations.first()) != NULL)
+            {
+              l->data()->Terminate();
+            }
+#else
+            empty_list( m_civilizations );
+#endif
+          }
+
+          assert (m_stationTypes.n() == 0);
+          assert (m_hullTypes.n() == 0);
+          assert (m_partTypes.n() == 0);
+          assert (m_projectileTypes.n() == 0);
+          assert (m_developments.n() == 0);
+          assert (m_droneTypes.n() == 0);
+          assert (m_civilizations.n() == 0);
+          assert (m_treasureSets.n() == 0);
+
+          if (m_pptAmmoPack)
+          {
+            m_pptAmmoPack->Release();
+            m_pptAmmoPack = NULL;
+          }
+
+          if (m_pptFuelPack)
+          {
+            m_pptFuelPack->Release();
+            m_pptFuelPack = NULL;
+          }
         }
         virtual float                   GetFloatConstant(FloatConstantID fcid) const
         {
@@ -401,12 +449,13 @@ class   CmissionIGC : public ImissionIGC
             m_nReplayCount(0)
         {
             // Record the creation time
+#ifdef WIN
             SYSTEMTIME st;
             ::GetLocalTime(&st);
             ::SystemTimeToFileTime(&st, &m_ftCreated);
-
 			ZeroMemory(rgTechs, sizeof(rgTechs));
 			ZeroMemory(rgParts, sizeof(rgParts));
+#endif
         }
 
         virtual ~CmissionIGC(void);
@@ -563,11 +612,7 @@ class   CmissionIGC : public ImissionIGC
         {
             m_pStatic->DeletePartType(pt);
         }
-#ifdef WIN
         virtual IpartTypeIGC*                   GetPartType(PartID                          id) const
-#else
-        virtual TRef<IpartTypeIGC> GetPartType(PartID id) const
-#endif
         {
             return m_pStatic->GetPartType(id);
         }
@@ -779,12 +824,17 @@ class   CmissionIGC : public ImissionIGC
                 assert (pdTeamMoney);
 
                 assert (m_missionParams.fGoalTeamMoney > 0);
-
+#ifdef WIN  
                 for (SideLinkIGC*   psl = m_sides.first(); (psl != NULL); psl = psl->next())
                 {
                     //It is something we might be able to build and it will actually
                     //do something useful
                     DataBucketIGC   db = {pdTeamMoney, psl->data()};
+#else
+                for( auto psl : m_sides )
+                {
+                    DataBucketIGC db = {pdTeamMoney, psl};
+#endif
                     IbucketIGC*     b = (IbucketIGC*)(CreateObject(m_lastUpdate,
                                                                    OT_bucket,
                                                                    &db,
@@ -799,12 +849,20 @@ class   CmissionIGC : public ImissionIGC
 
             //Go through all sides and create the prosperity development (adjusting the price as needed)
             //Go through all the treasures and reset their expiration time
+#ifdef WIN
             for (TreasureLinkIGC*   ptl = m_treasures.first(); (ptl != NULL); ptl = ptl->next())
                 ptl->data()->ResetExpiration(m_lastUpdate);
+#else
+            for( auto t : m_treasures ) t->ResetExpiration(m_lastUpdate);
+#endif
 
+#ifdef WIN
             //Go through all stations and reset their start time
             for (StationLinkIGC*  psl = m_stations.first(); (psl != NULL); psl = psl->next())
                 psl->data()->SetLastUpdate(m_lastUpdate);
+#else
+            for( auto s : m_stations ) s->SetLastUpdate(m_lastUpdate);
+#endif
         }
 
         void                    UpdateSides(Time now,
@@ -844,7 +902,11 @@ class   CmissionIGC : public ImissionIGC
         
 		virtual void            SetPartFlagName(int id, EquipmentType et, ZString name)
         {
+#ifdef WIN
             Strcpy(rgParts[et][id],name);
+#else
+            rgParts[et][id] = name;
+#endif
         }
 		// /imago
 
@@ -962,13 +1024,19 @@ class   CmissionIGC : public ImissionIGC
         StationID                m_nextStationID;
 
         STAGE                    m_stageMission;
-
+#ifdef WIN
         FILETIME                 m_ftCreated;
+#endif
         bool                     m_bHasGenerated;
         short                    m_nReplayCount;
         ZString                  m_strContextName;
+#ifdef WIN
 		char					 rgTechs[cTechs][CbTechBitName+1];
 		char					 rgParts[ET_MAX][16][CbTechBitName+1];
+#else
+    std::vector<std::string> rgTechs = std::vector<std::string>(cTechs,std::string());
+    std::vector<std::vector<std::string>> rgParts = std::vector<std::vector<std::string>>(ET_MAX,std::vector<std::string>(16,std::string()));
+#endif
 };
 
 // Read missions from plain-text Imago 8/3/08 NYI: XML

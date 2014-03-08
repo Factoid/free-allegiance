@@ -93,7 +93,11 @@ HRESULT CmissileIGC::Initialize(ImissionIGC* pMission, Time now, const void* dat
 
             //lifespan == 0 => immortal missile that can hit until it gets terminated on the next update; this is bad
             assert (dataMissileType->lifespan > 0.0f);
+#ifdef WIN
             m_timeExpire = now + dataMissileType->lifespan;
+#else
+            m_timeExpire = now + Duration(dataMissileType->lifespan);
+#endif
             assert (m_timeExpire != now);
 
             //Can't hit your launcher
@@ -102,7 +106,11 @@ HRESULT CmissileIGC::Initialize(ImissionIGC* pMission, Time now, const void* dat
         }
         m_launcher->SetLastMissileFired(this);
 
+#ifdef WIN
         m_timeActivate = now + dataMissileType->readyTime;
+#else
+        m_timeActivate = now + Duration(dataMissileType->readyTime);
+#endif
 
         SetCluster(dataMissile->pCluster);
 
@@ -366,8 +374,11 @@ void    CmissileIGC::Update(Time now)
             //Actively track the target
             Orientation o = GetOrientation();
             float   acceleration = m_missileType->GetAcceleration();
-
+#ifdef WIN
             float dt = now - ((m_timeActivate > GetMyLastUpdate()) ? m_timeActivate : GetMyLastUpdate());
+#else
+            float dt = (now - ((m_timeActivate > GetMyLastUpdate()) ? m_timeActivate : GetMyLastUpdate())).count();
+#endif
 
             if (m_target && (m_target->GetCluster() != GetCluster()))
             {
@@ -402,7 +413,11 @@ void    CmissileIGC::Update(Time now)
                 //The missile activated partway through the update cycle. Fudge things (by a teleport)
                 //so that the missile ends up at the position it would have ended up if the activate had
                 //happened exactly at an update boundary
+#ifdef WIN
                 SetPosition(myPosition - deltaV * (m_timeActivate - GetMyLastUpdate()));
+#else
+                SetPosition(myPosition - deltaV * (m_timeActivate - GetMyLastUpdate()).count());
+#endif
             }
 
             m_tImpact -= dt;

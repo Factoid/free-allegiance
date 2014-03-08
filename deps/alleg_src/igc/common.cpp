@@ -470,7 +470,7 @@ ImodelIGC*  FindTarget(IshipIGC*           pship,
                 mLink = (mLink && (mLink != models->last())) ? mLink->next() : models->first();
         }
 #else
-        ModelLinkIGC::const_iterator mLink = std::find(models->begin(),models->end(),pmodelCurrent);
+        auto mLink = std::find(models->begin(),models->end(),pmodelCurrent);
         if( ttMask & c_ttPrevious )
         {
           --mLink;
@@ -494,7 +494,7 @@ ImodelIGC*  FindTarget(IshipIGC*           pship,
         {
             ImodelIGC*  m = l->data();
 #else
-        ModelLinkIGC::const_iterator l = mLink;
+        auto l = mLink;
         do
         {
             ImodelIGC* m = *l;
@@ -2798,7 +2798,7 @@ void DamageTrack::sort(DamageBucketList*  pListBuckets)
         }
     }
 #else
-    pListBuckets->sort( [](DamageBucket* l, DamageBucket* r) { return l->totalDamage() < r->totalDamage(); } );
+    std::sort( pListBuckets->begin(), pListBuckets->end(), [](DamageBucket* l, DamageBucket* r) { return l->totalDamage() < r->totalDamage(); } );
 #endif
 }
 

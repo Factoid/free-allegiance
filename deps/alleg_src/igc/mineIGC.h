@@ -71,7 +71,11 @@ class CmineIGC : public TmodelIGC<ImineIGC>
         {
             if (pmodel->GetObjectType() == OT_ship)
             {
+#ifdef WIN
                 const float c_dtArmTime = 1.0f;
+#else
+                const Duration c_dtArmTime(1.0f);
+#endif
 
 				if (((pmodel->GetSide() != GetSide()) && !IsideIGC::AlliedSides(pmodel->GetSide(),GetSide())) && (timeCollision >= m_time0 + c_dtArmTime)) // #ALLY - was : (pmodel->GetSide() != GetSide())  Imago fixed!
                 {

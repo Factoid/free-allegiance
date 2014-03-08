@@ -17,6 +17,8 @@
 #define __SHIPIGC_H_
 
 #include    "modelIGC.h"
+#include <cfloat>
+
 
 const float c_dtCheckRunaway = 31.0f;   //Must be slightly longer than ripcord time for drones.
 
@@ -238,6 +240,7 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                 SetStateBits(oneWeaponIGC | allWeaponsIGC, 0); //Stop shooting any weapons.
 
                 {
+#ifdef WIN
                     //Move the children of this ship to the new cluster as well
                     for (ShipLinkIGC*   psl = m_shipsChildren.first();
                          (psl != NULL);
@@ -245,6 +248,12 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                     {
                         psl->data()->SetCluster(cluster);
                     }
+#else
+                    for( auto ship : m_shipsChildren )
+                    {
+                      ship->SetCluster(cluster);
+                    }
+#endif
                 }
 
                 GetMyMission()->GetIgcSite()->ChangeCluster(this, pclusterOld, cluster);
@@ -395,8 +404,15 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
             Money money = m_myHullType.GetHullType() ? m_myHullType.GetPrice() : 0;
 
             //Money for the parts
+#ifdef WIN
             for (PartLinkIGC* ppartlink = m_parts.first(); ppartlink; ppartlink = ppartlink->next())
                 money += ppartlink->data()->GetPrice();
+#else
+            for( auto part : m_parts )
+            {
+              money += part->GetPrice();
+            }
+#endif
 
             return money;
         }
@@ -520,16 +536,30 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
             }
             else
             {
+#ifdef WIN
                 PartLinkIGC*    pl;
                 while (pl = m_parts.first())    //intentional assignment
                     pl->data()->Terminate();
+#else
+                while( !m_parts.empty() )
+                {
+                  m_parts.front()->Terminate();
+                }
+#endif
 
+#ifdef WIN
                 //Blow away the children
                 ShipLinkIGC*    psl;
                 while (psl = m_shipsChildren.first())   //intentional assignment
                 {
                     psl->data()->SetParentShip(NULL);
                 }
+#else
+                while( !m_shipsChildren.empty() )
+                {
+                  m_shipsChildren.front()->Terminate();
+                }
+#endif
             }            
 
             SetBaseHullType(GetSide()->GetCivilization()->GetLifepod());
@@ -601,7 +631,11 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
 
             if ((newVal == 0) && (oldAmmo > 0) && (GetMyLastUpdate() >= m_timeReloadAmmo))
             {
+#ifdef WIN
                 m_timeReloadAmmo = GetMyLastUpdate() + 0.5f / GetMyMission()->GetFloatConstant(c_fcidMountRate);
+#else
+                m_timeReloadAmmo = GetMyLastUpdate() + Duration( 0.5f / GetMyMission()->GetFloatConstant(c_fcidMountRate) );
+#endif
                 IIgcSite*   pigc = GetMyMission()->GetIgcSite();
                 if (!pigc->Reload(this, NULL, ET_Weapon))
                 {
@@ -631,7 +665,11 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
 
             if ((newVal == 0.0f) && (oldFuel > 0.0f) && (GetMyLastUpdate() >= m_timeReloadFuel))
             {
+#ifdef WIN
                 m_timeReloadFuel = GetMyLastUpdate() + 0.5f / GetMyMission()->GetFloatConstant(c_fcidMountRate);
+#else
+                m_timeReloadFuel = GetMyLastUpdate() + Duration(0.5f / GetMyMission()->GetFloatConstant(c_fcidMountRate));
+#endif
                 IIgcSite*   pigc = GetMyMission()->GetIgcSite();
                 if (!pigc->Reload(this, NULL, ET_Afterburner))
                 {
@@ -818,17 +856,25 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                 assert (ploadout->hullID != NA);
 
                 ExpandedPartData*   ppd = ploadout->PartData0();
+#ifdef WIN
                 for (PartLinkIGC*   ppl = m_parts.first(); (ppl != NULL); ppl = ppl->next())
                 {
                     IpartIGC*   ppart = ppl->data();
-
+#else
+                for( auto ppart : m_parts )
+                {
+#endif
                     ppd->partID              = ppart->GetPartType()->GetObjectID();
                     ppd->mountID             = ppart->GetMountID();
                     ppd->amount              = ppart->GetAmount();
                     (ppd++)->fractionMounted = ppart->GetMountedFraction();
                 }
             }
+#ifdef WIN
             return sizeof(ShipLoadout) + sizeof(ExpandedPartData) * m_parts.n();
+#else
+            return sizeof(ShipLoadout) + sizeof(ExpandedPartData) * m_parts.size();
+#endif
         }
 
         virtual bool                EquivalentShip(IshipIGC* pship) const
@@ -899,9 +945,13 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                 {
                     //Yes ... change it. Trash all the parts first, though
                     {
+#ifdef WIN
                         PartLinkIGC*    ppl;
                         while (ppl = m_parts.first())   //Intentional
                             ppl->data()->Terminate();
+#else
+                        while( !m_parts.empty() ) m_parts.front()->Terminate();
+#endif
                     }
                     SetBaseHullType(GetMyMission()->GetHullType(ploadout->hullID));
                 }
@@ -909,8 +959,11 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
 
             const ExpandedPartData* ppartLC     = ploadout->PartData0();
             const ExpandedPartData* ppdLastPart = ploadout->PartDataN(cbLoadout);
-
+#ifdef WIN
             PartLinkIGC*            pplShip = m_parts.first();
+#else
+            PartListIGC::iterator pplShip = m_parts.begin();
+#endif
 
             //Walk both lists in parallel, looking for differences
             while (true)
@@ -918,10 +971,18 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                 if (ppartLC != ppdLastPart)
                 {
                     //We have a part in the message
+#ifdef WIN
                     if (pplShip)
+#else
+                    if( pplShip != m_parts.end() )
+#endif
                     {
                         //We have a corresponding part on the ship ... are they the same part?
+#ifdef WIN
                         IpartIGC*   ppart = pplShip->data();
+#else
+                        IpartIGC* ppart = *pplShip;
+#endif
             
                         if (ppart->GetPartType()->GetObjectID() == ppartLC->partID)
                         {
@@ -953,14 +1014,23 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                                 ppart->SetMountedFraction(ppartLC->fractionMounted);
 
                             //Go to the next part pair.
+#ifdef WIN
                             pplShip = pplShip->next();
+#else
+                            ++pplShip;
+#endif
                             ppartLC++;
                         }
                         else
                         {
                             //No ... delete this part and go to the next part on the ship
                             //while not advancing the ppartLC pointer
+#ifdef WIN
                             pplShip = pplShip->next();
+#else
+                            ++pplShip;
+#endif
+
 
                             ppart->Terminate();
                         }
@@ -977,14 +1047,25 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                         ppartLC++;
                     }
                 }
+#ifdef WIN
                 else if (pplShip)
+#else
+                else if (pplShip != m_parts.end() )
+#endif
                 {
                     //No part in the message but one on the ship. Nuke it.
+#ifdef WIN
                     IpartIGC*   ppart = pplShip->data();
+#else
+                    IpartIGC* ppart = *pplShip;
+#endif
 
                     //Go to the next part before the nuke
+#ifdef WIN
                     pplShip = pplShip->next();
-
+#else
+                    ++pplShip;
+#endif
                     ppart->Terminate();
                 }
                 else
@@ -1016,13 +1097,24 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
             //So far so good ... trash the parts
             PartListIGC     partsOld;
             {
+#ifdef WIN
                 PartLinkIGC*    ppl;
                 while (ppl = m_parts.first())   //Intentional
                 {
                     IpartIGC*   ppart = ppl->data();
+#else
+                while( !m_parts.empty() )
+                {
+                  IpartIGC* ppart = m_parts.front();
+#endif
+
                     ppart->AddRef();
                     ppart->SetShip(NULL, NA);
+#ifdef WIN
                     partsOld.last(ppart);
+#else
+                    partsOld.push_back(ppart);
+#endif
                 }
             }
             if (pht != m_myHullType.GetHullType())
@@ -1051,18 +1143,26 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                     else
                     {
                         //Can't buy the part: can we re-use an existing part?
+#ifdef WIN
                         for (PartLinkIGC*   pplOld = partsOld.first(); (pplOld != NULL); pplOld = pplOld->next())
                         {
                             if (ppt == pplOld->data()->GetPartType())
                             {
                                 IpartIGC*   ppart = pplOld->data();
 
+#else
+                        for( auto ppart : partsOld )
+                        {
+                          if( ppt == ppart->GetPartType() )
+                          {
+#endif
                                 ppart->SetShip(this, ppdNext->mountID);
                                 ppart->Arm();
 
                                 ppart->Release();
+#ifdef WIN
                                 delete pplOld;
-
+#endif
                                 //If this is an expendable ... scavenge all the old parts to fill it up
                                 if (IlauncherTypeIGC::IsLauncherType(ppt->GetEquipmentType()))
                                 {
@@ -1071,11 +1171,16 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                                     if (ammo < maxAmmo)
                                     {
                                         PartLinkIGC*    pplNext;
+#ifdef WIN
                                         for (PartLinkIGC*   pplOther = partsOld.first(); (pplOther != NULL); pplOther = pplNext)
                                         {
                                             pplNext = pplOther->next();
 
                                             IpartIGC*   ppartOther = pplOther->data();
+#else
+                                        for( auto ppartOther : partsOld )
+                                        {
+#endif
                                             if (ppartOther->GetPartType() == ppt)
                                             {
                                                 short   newAmmo = ammo + ppartOther->GetAmount();
@@ -1088,8 +1193,9 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                                                 {
                                                     ppartOther->Terminate();
                                                     ppartOther->Release();
-
+#ifdef WIN
                                                     delete pplOther;
+#endif
                                                 }
 
                                                 ppart->SetAmount(newAmmo);
@@ -1109,6 +1215,7 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
             }
 
             {
+#ifdef WIN
                 PartLinkIGC*    ppl;
                 while (ppl = partsOld.first())  //Intentional
                 {
@@ -1116,6 +1223,12 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                     ppl->data()->Release();
                     delete ppl;
                 }
+#else
+                for( auto part : partsOld )
+                {
+                  part->Terminate();
+                }
+#endif
             }
 
             return bComplete;
@@ -1457,12 +1570,14 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
             else
             {
                 // we have to manually walk through the child ships
-                for (ShipLinkIGC*   psl = m_shipsChildren.first();
-                     (psl != NULL);
-                     psl = psl->next())
+#ifdef WIN
+                for (ShipLinkIGC*   psl = m_shipsChildren.first(); (psl != NULL); psl = psl->next())
                 {
                     IshipIGC* pshipChild = psl->data();
-
+#else
+                for( auto pshipChild : m_shipsChildren )
+                {
+#endif
                     if (pshipChild->GetTurretID() == turretID)
                         return pshipChild;
                 }
@@ -1767,7 +1882,11 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
 
         virtual void    Complain(SoundID    sid, const char* pszMsg)
         {
+#ifdef WIN
             if (GetMyLastUpdate() >= m_timeLastComplaint + m_dtTimeBetweenComplaints)
+#else
+            if( GetMyLastUpdate() >= m_timeLastComplaint + Duration(m_dtTimeBetweenComplaints) )
+#endif
             {
                 //There is another side here at the asteroid ... complain
                 m_timeLastComplaint = GetMyLastUpdate();
@@ -1781,7 +1900,11 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
 
         virtual IshipIGC*           GetAutoDonate(void) const
         {
+#ifdef WIN
             return m_pshipAutoDonate;
+#else
+            return m_pshipAutoDonate.get();
+#endif
         }
         virtual void                SetAutoDonate(IshipIGC* pship)
         {
@@ -1796,16 +1919,24 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                 assert (pship->GetAutoDonate() == NULL);
 
                 //Was anyone on my ide donating to me ... if so, they start donating to the new person
-                for (ShipLinkIGC*   psl = pside->GetShips()->first();
-                     (psl != NULL);
-                     psl = psl->next())
+#ifdef WIN
+                for (ShipLinkIGC*   psl = pside->GetShips()->first(); (psl != NULL); psl = psl->next())
                 {
                     if (psl->data()->GetAutoDonate() == this)
                         psl->data()->SetAutoDonate(pship == psl->data() ? NULL : pship);
                 }
+#else
+                for( auto ship : *(pside->GetShips()) )
+                {
+                  if( ship->GetAutoDonate() == this ) ship->SetAutoDonate( pship == ship ? nullptr : pship );
+                }
+#endif
             }
-
+#ifdef WIN
             m_pshipAutoDonate = pship;
+#else
+            m_pshipAutoDonate.reset(pship);
+#endif
         }
 
         virtual short                      GetKills(void) const
@@ -1886,21 +2017,36 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
 
         virtual ImodelIGC*          GetRipcordModel(void) const
         {
+#ifdef WIN
             return m_pmodelRipcord;
+#else
+            return m_pmodelRipcord.get();
+#endif
         }
         virtual void                SetRipcordModel(ImodelIGC*  pmodel)
         {
             //Turn off cloak if ripcording
             if (pmodel && (m_stateM & cloakActiveIGC))
                 SetStateM(m_stateM & ~cloakActiveIGC);
-
+#ifdef WIN
             if (m_pmodelRipcord && (m_pmodelRipcord->GetObjectType() == OT_ship))
                 ((IshipIGC*)(ImodelIGC*)m_pmodelRipcord)->AdjustRipcordDebt(-m_ripcordCost);
+#else
+            if (m_pmodelRipcord && (m_pmodelRipcord->GetObjectType() == OT_ship)) ((IshipIGC*)(ImodelIGC*)m_pmodelRipcord.get())->AdjustRipcordDebt(-m_ripcordCost);
+#endif
 
+#ifdef WIN
             m_pmodelRipcord = pmodel;
+#else
+            m_pmodelRipcord.reset(pmodel);
+#endif
 
-            if (m_pmodelRipcord && (m_pmodelRipcord->GetObjectType() == OT_ship))
-                ((IshipIGC*)(ImodelIGC*)m_pmodelRipcord)->AdjustRipcordDebt(m_ripcordCost);
+#ifdef WIN
+            if (m_pmodelRipcord && (m_pmodelRipcord->GetObjectType() == OT_ship)) ((IshipIGC*)(ImodelIGC*)m_pmodelRipcord)->AdjustRipcordDebt(m_ripcordCost);
+#else
+            if (m_pmodelRipcord && (m_pmodelRipcord->GetObjectType() == OT_ship)) ((IshipIGC*)(ImodelIGC*)m_pmodelRipcord.get())->AdjustRipcordDebt(m_ripcordCost);
+#endif
+
         }
         virtual ImodelIGC*          FindRipcordModel(IclusterIGC*   pcluster);
 
@@ -1925,7 +2071,11 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
         virtual bool                OkToLaunch(Time now)
         {
             //Spend 10 seconds docked (MyLastUpdate is not being updated while docked)
+#ifdef WIN
             if ((now > GetMyLastUpdate() + 10.0f) && !m_stayDocked) //Xynth #48 8/10 add staydocked bool
+#else
+            if( (now > GetMyLastUpdate() + Duration(10.0f)) && !m_stayDocked)
+#endif
             {
                 IclusterIGC*    pcluster   = m_station->GetCluster();
                 const Vector&   positionMe = m_station->GetPosition();
@@ -1939,9 +2089,14 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                     int     cFriend = 0;
                     float   d2Enemy = FLT_MAX;
                     float   d2Friend = FLT_MAX;
+#ifdef WIN
                     for (ShipLinkIGC*   psl = m_station->GetCluster()->GetShips()->first(); (psl != NULL); psl = psl->next())
                     {
                         IshipIGC*   pship = psl->data();
+#else
+                    for( auto pship : *(m_station->GetCluster()->GetShips()) )
+                    {
+#endif
                         if ((pship->GetPilotType() >= c_ptPlayer) && (pship->GetParentShip() == NULL) &&
                             !pship->GetBaseHullType()->HasCapability(c_habmLifepod))
                         {
@@ -2017,16 +2172,22 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                 m_maxMineTime = timeCollision;
                 m_maxMineP1 = position1;
                 m_maxMineP2 = position2;
-
+#ifdef WIN
                 m_maxMineLauncher = pmodelLauncher;
-
+#else
+                m_maxMineLauncher.reset( pmodelLauncher );
+#endif
             }
         }
         virtual void                ApplyMineDamage(void)
         {
             if (m_maxMineAmount > 0.0f)
             {
+#ifdef WIN
                 if (m_maxMineTime > m_timeLastMineExplosion + 0.5f)
+#else
+                if (m_maxMineTime > m_timeLastMineExplosion + Duration(0.5f))
+#endif
                 {
                     m_timeLastMineExplosion = m_maxMineTime;
                     GetCluster()->GetClusterSite()->AddExplosion(m_maxMineP2, 1.5f, c_etMine);
@@ -2037,8 +2198,11 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
 
                 float amount = m_maxMineAmount;
                 m_maxMineAmount = 0.0f;
-
+#ifdef WIN
                 ReceiveDamage(m_maxMineType, amount, m_maxMineTime, m_maxMineP1, m_maxMineP2, pmodelLauncher);
+#else
+                ReceiveDamage(m_maxMineType, amount, m_maxMineTime, m_maxMineP1, m_maxMineP2, pmodelLauncher.get());
+#endif
             }
         }
 
@@ -2058,7 +2222,11 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
         //Builders ...
         virtual void                SetBaseData(IbaseIGC*  pbase)
         {
+#ifdef WIN
             m_pbaseData = pbase;
+#else
+            m_pbaseData.reset(pbase);
+#endif
             if (m_pilotType == c_ptBuilder)
             {
                 assert (pbase->GetObjectType() == OT_stationType);
@@ -2073,7 +2241,11 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
         }
         virtual IbaseIGC*           GetBaseData(void) const
         {
+#ifdef WIN
             return m_pbaseData;
+#else
+            return m_pbaseData.get();
+#endif
         }
 
         virtual CommandID           GetDefaultOrder(ImodelIGC*  pmodel)
@@ -2377,7 +2549,11 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                             GetMyMission()->GetIgcSite()->SendChatf(this, CHAT_TEAM, GetSide()->GetObjectID(),
                                                                     droneInTransitSound,
                                                                     "Building %s at %s",
+#ifdef WIN
                                                                     ((IstationTypeIGC*)(IbaseIGC*)m_pbaseData)->GetName(),
+#else
+                                                                    ((IstationTypeIGC*)(IbaseIGC*)m_pbaseData.get())->GetName(),
+#endif
                                                                     GetModelName(pmodel));
                     }
                 }
@@ -2443,7 +2619,11 @@ class       CshipIGC : public TmodelIGC<IshipIGC>
                 m_myHullType.GetHullType()->HasCapability(c_habmLifepod) &&
                 GetCluster())
             {
+#ifdef WIN
                 e = (m_timeToDie - GetLastUpdate()) / GetMyMission()->GetFloatConstant(c_fcidLifepodEndurance);
+#else
+                e = (m_timeToDie - GetLastUpdate()).count() / GetMyMission()->GetFloatConstant(c_fcidLifepodEndurance);
+#endif
                 if (e < 0.0f)
                     e = 0.0f;
                 else if (e > 1.0f)

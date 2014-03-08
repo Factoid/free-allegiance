@@ -64,8 +64,11 @@ void        CshieldIGC::Update(Time now)
 
     Time    lastUpdate = m_ship->GetLastUpdate();
     assert (now >= lastUpdate);
-
+#ifdef WIN
     float dt = now - lastUpdate;
+#else
+    float dt = (now-lastUpdate).count();
+#endif
 
 
     if (m_mountedFraction < 1.0f)

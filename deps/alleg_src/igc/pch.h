@@ -17,6 +17,7 @@
 #ifndef WIN
 #include <cinttypes>
 #include <vector>
+#include <deque>
 #include <list>
 #include <string>
 #include <bitset>
@@ -58,8 +59,10 @@ const int   c_maxHitTests = 100;
 const int   c_minNodeSize = 5;
 const int   c_minRootSize = 10;
 const float pi = 3.14159265359f;
+#define TRUE true
 typedef std::mutex CRITICAL_SECTION;
 typedef std::string ZString;
+typedef const char* PCC;
 typedef int INT;
 typedef uint32_t UINT;
 typedef int64_t __int64;
@@ -75,8 +78,33 @@ typedef char HitTestShape;
 typedef uint64_t ULONG;
 typedef void* HitTestID;
 
+inline bool FAILED( HRESULT hr )
+{
+  return hr < 0;
+}
+inline bool SUCCEEDED( HRESULT hr )
+{
+  return !FAILED(hr);
+}
+
+inline void Strcpy( ZString& d, const ZString& s )
+{
+  d = s;
+}
+
+inline void Strcpy( char* d, const ZString& s )
+{
+  strcpy(d,s.c_str());
+}
+
+inline const float RadiansFromDegrees(float value) { return value * pi / 180.0f; }
+inline const float DegreesFromRadians(float value) { return value * 180.0f / pi; }
+
 const HRESULT S_OK = 0;
+const HRESULT S_FALSE = 1;
+const HRESULT E_ABORT = 0x80004004;
 const HRESULT E_INVALIDARG = 0x80070057;
+const HRESULT E_FAIL = 0x80004005;
 //These do not depend on orientation
 const HitTestShape  c_htsPoint      = -4;
 const HitTestShape  c_htsSphere     = -3;
@@ -91,20 +119,35 @@ HitTestID const c_htidStaticObject = (HitTestID)(-1);
 const HitTestShape  c_htsConvexHullMin = 0;
 const HitTestShape  c_htsConvexHullMax = 127;
 
-template<class T> using Slist_utl = std::list<T>;
+template<class T> using Slist_utl = std::deque<T>;
 template<class T> using Slink_utl = std::list<T>;
 template<class T> using TRef = std::shared_ptr<T>;
 template<class T,class V> using TMap = std::map<T,V>;
 
+template<size_t T> using TLargeBitMask = std::bitset<T>;
+template<size_t T> bool operator<= ( const std::bitset<T>& lhs, std::bitset<T> rhs )
+{
+  return false;
+}
+
+/*
 template<size_t T> class TLargeBitMask : public std::bitset<T>
 {
 public:
+  std::bitset<T> operator | ( const std::bitset<T> rhs )
+  bool operator <= ( const std::bitset<T> rhs ) const
+  {
+    throw "Not Implemented";
+    return false;
+  }
+
   bool operator <= ( const TLargeBitMask<T> rhs ) const
   {
     throw "Not Implemented!";
     return false;
   }
 };
+*/
 
 inline void _itoa( int n, char* str, int base )
 {
@@ -344,6 +387,7 @@ class Rotation
         Vector  m_axis;
         float   m_angle;
 };
+const Rotation c_rotationZero(0.0f, 0.0f, 1.0f, 0.0f);
 
 class Transform44
 {

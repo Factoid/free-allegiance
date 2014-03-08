@@ -229,8 +229,13 @@ class CprobeIGC : public TmodelIGC<IprobeIGC>
         {
             float   dt = m_probeType->GetRipcordDelay();
             return (dt >= 0.0f) &&
+#ifdef WIN
                    ((GetMyLastUpdate() - m_time0) >= dt) &&
                    ((GetMyLastUpdate() + (ripcordSpeed + 1.0f)) <= m_timeExpire);
+#else
+                   ((GetMyLastUpdate() - m_time0).count() >= dt) &&
+                   ((GetMyLastUpdate() + Duration(ripcordSpeed + 1.0f)) <= m_timeExpire);
+#endif
         }
 
         virtual float               GetRipcordDelay(void) const

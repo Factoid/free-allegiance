@@ -345,17 +345,31 @@ static bool    EnoughPaths(IclusterIGC**            pclusterBackTrack,
 
 static bool OkToRemove(const ClusterListIGC*    pclusters, IwarpIGC* pwarp)
 {
+#ifdef WIN
     IclusterIGC**   pclusterBackTrack = (IclusterIGC**)alloca(pclusters->n() * sizeof(IclusterIGC*));
     bool*           bVisited = (bool*)alloca(pclusters->n() * sizeof(bool));
-
+#else
+    std::vector<IclusterIGC*> pclusterBackTrack( pclusters->size(), 0 );
+    std::unique_ptr<bool[]> bVisited( new bool[pclusters->size()] );
+#endif
     {
+#ifdef WIN
         for (int i = pclusters->n() - 1; (i >= 0); i--)
             bVisited[i] = false;
+#else
+        for( int i = 0; i < pclusters->size(); ++i )
+        {
+          bVisited[i] = false;
+        }
+#endif
     }
 
     bVisited[pwarp->GetCluster()->GetObjectID()] = true;
-
-    return EnoughPaths(pclusterBackTrack, bVisited, pclusters, pwarp, 2);
+#ifdef WIN
+    return EnoughPaths(&pclusterBackTrack[0], bVisited, pclusters, pwarp, 2);
+#else
+    return EnoughPaths(&pclusterBackTrack[0], bVisited.get(), pclusters, pwarp, 2);
+#endif
 }
 
 VOID CmapMakerIGC::GenerateMission(Time now,
@@ -383,23 +397,48 @@ VOID CmapMakerIGC::GenerateMission(Time now,
     {
         //Adjust the position of all alephs in all clusters
         float   majorRadius = pMission->GetFloatConstant(c_fcidRadiusUniverse);
+#ifdef WIN
         for (ClusterLinkIGC*    pcl = pMission->GetClusters()->first(); (pcl != NULL); pcl = pcl->next())
         {
             IclusterIGC*    pcluster = pcl->data();
-
-            const WarpListIGC*  pwarps = pcluster->GetWarps();
+#else
+        for( auto pcluster : *(pMission->GetClusters()) )
+        {
+#endif
+            const WarpListIGC* pwarps = pcluster->GetWarps();
+#ifdef WIN
             if (pwarps->n() != 0)
+#else
+            if(!pwarps->empty())
+#endif
             {
+#ifdef WIN
                 float   nWarps = (float)(pwarps->n());
+#else
+                float nWarps = (float)(pwarps->size());
+#endif
 
                 const int c_maxWarps = 10;
+#ifdef WIN
                 assert (pwarps->n() <= c_maxWarps);
-
+#else
+                assert(pwarps->size() <= c_maxWarps);
+#endif
+#ifdef WIN
                 float   offset[c_maxWarps] = {0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
+#else
+                std::vector<float> offset = {0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
+#endif
+ 
                 float   displacement;
+#ifdef WIN
                 if (pwarps->n() > 1)
+#else
+                if(pwarps->size() > 1)
+#endif
                 {
                     displacement =  sin(pi/nWarps) * 2.0f / 3.0f;
+#ifdef WIN
                     for (int index = 0; (index < pwarps->n()); index++)
                     {
                         int swap = randomInt(0, pwarps->n() - 1);
@@ -410,6 +449,11 @@ VOID CmapMakerIGC::GenerateMission(Time now,
                             offset[swap] = t;
                         }
                     }
+#else
+                    std::random_device rd;
+                    std::mt19937 g(rd());
+                    std::shuffle( offset.begin(), offset.end(), g );
+#endif
                 }
                 else
                     displacement = 2.0f / 3.0f;
@@ -417,11 +461,14 @@ VOID CmapMakerIGC::GenerateMission(Time now,
                 {
                     float   bias = random(0.0f, 2.0f * pi);
                     int     index = 0;
-
+#ifdef WIN
                     for (WarpLinkIGC*   pwl = pwarps->first(); (pwl != NULL); pwl = pwl->next())
                     {
                         IwarpIGC*   pwarp = pwl->data();
-
+#else
+                    for( auto pwarp : *pwarps )
+                    {
+#endif
                         float       r = pwarp->GetPosition().z * majorRadius;
 
                         float       angle = bias + offset[index++] * (2.0f * pi) / nWarps;
@@ -448,15 +495,24 @@ VOID CmapMakerIGC::GenerateMission(Time now,
     if (pmp->iRandomEncounters > 1)
     {
         const WarpListIGC*      pwarpList = pMission->GetWarps();
+#ifdef WIN
         IwarpIGC**  pwarps = (IwarpIGC**)(alloca(pwarpList->n() * sizeof(IwarpIGC*)));
+#else
+        std::vector<IwarpIGC*> pwarps( pwarpList->size(), nullptr );
+#endif
 
         //Actually allocate twice as much space as we need since we are only storing a single instance for
         //both sides of the aleph
         int nWarps = 0;
         {
+#ifdef WIN
             for (WarpLinkIGC*   pwl = pwarpList->first(); (pwl != NULL); pwl = pwl->next())
             {
                 IwarpIGC*   pwarp = pwl->data();
+#else
+            for( auto pwarp : *pwarpList )
+            {
+#endif
                 if ((pwarp->GetObjectID() < pwarp->GetDestination()->GetObjectID()) &&
                     (randomInt(0, pmp->iRandomEncounters) > 1))
                 {
@@ -976,12 +1032,15 @@ VOID CmapMakerIGC::PopulateClusters(CMapData* pMapData)
                         pMapData->GetMissionParams()->fHe3Density *
                         float(pMapData->GetTeams()) / float(pMapData->GetMinableAsteroids());
 
-
+#ifdef WIN
     for (ClusterLinkIGC*    pcl = pMapData->GetMission()->GetClusters()->first(); (pcl != NULL); pcl = pcl->next())
     {
         IclusterIGC*    pcluster = pcl->data();
-        if (pcluster->GetHomeSector())
-            GenerateStarbase(pMapData, pcluster);
+#else
+    for( auto pcluster : *(pMapData->GetMission()->GetClusters()) )
+    {
+#endif
+        if (pcluster->GetHomeSector()) GenerateStarbase(pMapData, pcluster);
 
         PopulateCluster(pMapData, pcluster, amountHe3);
     }
@@ -993,28 +1052,36 @@ VOID CmapMakerIGC::RevealHomeClusters(ImissionIGC * pMission)
 	    //
 	    // Show every side everything about its home
 	    //
-	    for (SideLinkIGC * psl = pMission->GetSides()->first();
-	        (psl != NULL);
-	        psl = psl->next())
+#ifdef WIN
+	    for (SideLinkIGC * psl = pMission->GetSides()->first(); (psl != NULL); psl = psl->next())
 	    {
 	        IsideIGC*   pside = psl->data();
-
-	        for (StationLinkIGC * pstnl = pside->GetStations()->first();
-	            (pstnl != NULL);
-	            pstnl = pstnl->next())
-			{
+#else
+      for( auto pside : *(pMission->GetSides()) )
+      {
+#endif
+#ifdef WIN
+        for (StationLinkIGC * pstnl = pside->GetStations()->first(); (pstnl != NULL); pstnl = pstnl->next())
+			  {
 	            //
 	            // Make every model in the station's cluster visible to the side
 	            //
-	            for (ModelLinkIGC * pml =
-	                    pstnl->data()->GetCluster()->GetModels()->first();
-	                (pml != NULL);
-	                pml = pml->next())
-	            {
-	                pml->data()->SetSideVisibility(pside, true);
-	            }
-	        }
+          for (ModelLinkIGC * pml = pstnl->data()->GetCluster()->GetModels()->first(); (pml != NULL); pml = pml->next())
+          {
+              pml->data()->SetSideVisibility(pside, true);
+          }
+	      }
 	    }
+#else
+        for( auto pstnl : *(pside->GetStations()) )
+        {
+          for( auto pml : *(pstnl->GetCluster()->GetModels()) )
+          {
+            pml->SetSideVisibility(pside,true);
+          }
+        }
+      }
+#endif
 }
 
 VOID CmapMakerIGC::RevealMap(ImissionIGC * pMission)
@@ -1022,19 +1089,25 @@ VOID CmapMakerIGC::RevealMap(ImissionIGC * pMission)
     //
     // Show every side every warp
     //
-    for (WarpLinkIGC * pwl = pMission->GetWarps()->first();
-        (pwl != NULL);
-        pwl = pwl->next())
+#ifdef WIN
+    for (WarpLinkIGC * pwl = pMission->GetWarps()->first(); (pwl != NULL); pwl = pwl->next())
     {
         IwarpIGC*   pwarp = pwl->data();
-
-        for (SideLinkIGC * psl = pMission->GetSides()->first();
-            (psl != NULL);
-            psl = psl->next())
+#else
+    for( auto pwarp : *(pMission->GetWarps()) )
+    {
+#endif
+#ifdef WIN
+        for (SideLinkIGC * psl = pMission->GetSides()->first(); (psl != NULL); psl = psl->next())
         {
             pwarp->SetSideVisibility(psl->data(), true);
-
         }
+#else
+        for( auto psl : *(pMission->GetSides()) )
+        {
+          pwarp->SetSideVisibility(psl,true);
+        }
+#endif
     }
 }
 
@@ -1043,51 +1116,64 @@ VOID CmapMakerIGC::RevealAlliedClusters(ImissionIGC * pMission)
     //
     // Show every ally everything about thier home
     //
-	    for (SideLinkIGC * psl = pMission->GetSides()->first();
-	        (psl != NULL);
-	        psl = psl->next())
+#ifdef WIN
+	    for (SideLinkIGC * psl = pMission->GetSides()->first(); (psl != NULL); psl = psl->next())
 	    {
 	        IsideIGC*   pside = psl->data();
-
-	        for (StationLinkIGC * pstnl = pside->GetStations()->first();
-	            (pstnl != NULL);
-	            pstnl = pstnl->next())
-			{
-	            //
-	            // Make every model in the station's cluster visible to the allies
-	            //
-	            for (ModelLinkIGC * pml =
-	                    pstnl->data()->GetCluster()->GetModels()->first();
-	                (pml != NULL);
-	                pml = pml->next())
-	            {								
-					
-					//lets get a list of allied sideIDs
-				    for (SideLinkIGC* psidelink = pMission->GetSides()->first();
-						(psidelink != NULL);
-						psidelink = psidelink->next())
-					{
-						IsideIGC*   otherside = psidelink->data();
-						//this side is ally...and not ours or an aleph (alephs must be replicated)
-						if (pside->AlliedSides(otherside,pside) && otherside != pside && pml->data()->GetObjectType() != OT_warp) {
-							pml->data()->SetSideVisibility(otherside, true);
-						}
-					}
-	            }
-	        }
+#else
+      for( auto pside : *(pMission->GetSides()) )
+      {
+#endif
+#ifdef WIN
+        for (StationLinkIGC * pstnl = pside->GetStations()->first(); (pstnl != NULL); pstnl = pstnl->next())
+        {
+          //
+          // Make every model in the station's cluster visible to the allies
+          //
+          for (ModelLinkIGC * pml = pstnl->data()->GetCluster()->GetModels()->first(); (pml != NULL); pml = pml->next())
+          {								
+            //lets get a list of allied sideIDs
+            for (SideLinkIGC* psidelink = pMission->GetSides()->first(); (psidelink != NULL); psidelink = psidelink->next())
+            {
+              IsideIGC*   otherside = psidelink->data();
+              //this side is ally...and not ours or an aleph (alephs must be replicated)
+              if (pside->AlliedSides(otherside,pside) && otherside != pside && pml->data()->GetObjectType() != OT_warp) {
+                pml->data()->SetSideVisibility(otherside, true);
+              }
+            }
+          }
+        }
+#else
+        for( auto pstnl : *(pside->GetStations()) )
+        {
+          for( auto pml : *(pstnl->GetCluster()->GetModels()) )
+          {
+            for( auto otherside : *(pMission->GetSides()) )
+            {
+              if( pside->AlliedSides(otherside,pside) && otherside != pside && pml->GetObjectType() != OT_warp) {
+                pml->SetSideVisibility(otherside,true);
+              }
+            }
+          }
+        }
+#endif
 	    }
 }
 
 VOID CmapMakerIGC::ActivateSides(ImissionIGC * pMission)
 {
     const SideListIGC * psideList = pMission->GetSides();
-
-    for (SideLinkIGC * psidelink = psideList->first();
-        NULL != psidelink;
-        psidelink = psidelink->next())
+#ifdef WIN
+    for (SideLinkIGC * psidelink = psideList->first(); NULL != psidelink; psidelink = psidelink->next())
     {
         psidelink->data()->SetActiveF(true);
     }
+#else
+    for( auto pside : *(psideList) )
+    {
+      pside->SetActiveF(true);
+    }
+#endif
 }
 
 

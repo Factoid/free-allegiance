@@ -30,8 +30,11 @@ HRESULT         CsideIGC::Initialize(ImissionIGC*   pMission,
     m_pCivilization = pMission->GetCivilization(m_data.civilizationID);
     assert (m_pCivilization);
     m_pCivilization->AddRef();
-
+#ifdef WIN
     m_ttbmBuildingTechs.ClearAll(); //Will automatically adjust for starting buildings
+#else
+    m_ttbmBuildingTechs.reset();
+#endif
 
     m_lastUpdate = now;
 
@@ -54,23 +57,44 @@ void            CsideIGC::Terminate(void)
 
     {
         //Nuke all of the side's buckets
+#ifdef WIN
         BucketLinkIGC*  l;
         while (l = m_buckets.first())       //intentional assignment
             l->data()->Terminate();
+#else
+        while( !m_buckets.empty() )
+        {
+          m_buckets.front()->Terminate();
+        }
+#endif
     }
 
     {
+#ifdef WIN
         //Set all of the side's ships to the neutral side
         ShipLinkIGC*  l;
         while (l = m_ships.first())       //intentional assignment
             l->data()->SetSide(NULL);
+#else
+        while( !m_ships.empty() )
+        {
+          m_ships.front()->SetSide(nullptr);
+        }
+#endif
     }
 
     {
         //Nuke all of the stations
+#ifdef WIN
         StationLinkIGC*  l;
         while (l = m_stations.first())       //intentional assignment
             l->data()->Terminate();
+#else
+        while( !m_stations.empty() )
+        {
+          m_stations.front()->Terminate();
+        }
+#endif
     }
 
     m_pMission->DeleteSide(this);
@@ -94,13 +118,24 @@ int             CsideIGC::Export(void*  data) const
 void            CsideIGC::DestroyBuckets(void)
 {
     m_data.ttbmDevelopmentTechs = GetCivilization()->GetBaseTechs();
+#ifdef WIN
     m_ttbmBuildingTechs.ClearAll();
+#else
+    m_ttbmBuildingTechs.reset();
+#endif
 
     {
+#ifdef WIN
         //Nuke all of the side's buckets
         BucketLinkIGC*  l;
         while (l = m_buckets.first())       //intentional assignment
             l->data()->Terminate();
+#else
+        while( !m_buckets.empty() )
+        {
+          m_buckets.front()->Terminate();
+        }
+#endif
     }
 }
 
@@ -111,12 +146,17 @@ void            CsideIGC::CreateBuckets(void)
     if (m_pMission->GetMissionParams()->bAllowDevelopments)
     {
         TechTreeBitMask     ttbmLocalUltimate;
+#ifdef WIN
         ttbmLocalUltimate.ClearAll();
+#else
+        ttbmLocalUltimate.reset();
+#endif
         {
             //Resolve what the ultimate techs are for this civ ...
             m_ttbmUltimateTechs = m_data.ttbmDevelopmentTechs;
 
             {
+#ifdef WIN
                 //Start with their initial techs and add anything they could capture.
                 for (PartTypeLinkIGC*   l = m_pMission->GetPartTypes()->first();
                      (l != NULL);
@@ -124,9 +164,16 @@ void            CsideIGC::CreateBuckets(void)
                 {
                     m_ttbmUltimateTechs |= l->data()->GetEffectTechs();
                 }
+#else
+                for( auto part : *(m_pMission->GetPartTypes()) )
+                {
+                  m_ttbmUltimateTechs |= part->GetEffectTechs();
+                }
+#endif
             }
 
             {
+#ifdef WIN
                 //Do the building techs ... assume they capture every type of building
                 for (StationTypeLinkIGC*    l = m_pMission->GetStationTypes()->first();
                      (l != NULL);
@@ -135,6 +182,13 @@ void            CsideIGC::CreateBuckets(void)
                     m_ttbmUltimateTechs |= l->data()->GetEffectTechs();
                     ttbmLocalUltimate |= l->data()->GetLocalTechs();
                 }
+#else
+                for( auto st : *(m_pMission->GetStationTypes() ) )
+                {
+                    m_ttbmUltimateTechs |= st->GetEffectTechs();
+                    ttbmLocalUltimate |= st->GetLocalTechs();
+                }
+#endif
             }
 
             {
@@ -145,6 +199,7 @@ void            CsideIGC::CreateBuckets(void)
                 {
                     continueF = false;
                     {
+#ifdef WIN
                         //Do the same for developments
                         for (DevelopmentLinkIGC*    l = m_pMission->GetDevelopments()->first();
                              (l != NULL);
@@ -162,6 +217,22 @@ void            CsideIGC::CreateBuckets(void)
                                 }
                             }
                         }
+#else
+                        for( auto devel : *(m_pMission->GetDevelopments()) )
+                        {
+                            //Can we buy it?
+                            if (devel->GetRequiredTechs() <= m_ttbmUltimateTechs)
+                            {
+                                //yes ... does it make a difference?
+                                if (!(devel->GetEffectTechs() <= m_ttbmUltimateTechs))
+                                {
+                                    //yes ... 'buy it'
+                                    m_ttbmUltimateTechs |= devel->GetEffectTechs();
+                                    continueF = true;
+                                }
+                            }
+                        }
+#endif
                     }
                 }
                 while (continueF);
@@ -169,13 +240,17 @@ void            CsideIGC::CreateBuckets(void)
         }
 
         {
+#ifdef WIN
             //Add all developments that the side could, potentially, produce
             for (DevelopmentLinkIGC*    l = m_pMission->GetDevelopments()->first();
                  (l != NULL);
                  l = l->next())
             {
                 IdevelopmentIGC*    d = l->data();
-
+#else
+            for( auto d : *(m_pMission->GetDevelopments()) )
+            {
+#endif
                 //Only add the bucket if I'll be able to buy it eventually and it is not
                 //obsolete.
                 if ((d->GetObjectID() != c_didTeamMoney) && (d->GetRequiredTechs() <= m_ttbmUltimateTechs) && 
@@ -201,12 +276,16 @@ void            CsideIGC::CreateBuckets(void)
 
             {
                 //Add all developments that the side could, potentially, produce
+#ifdef WIN
                 for (DroneTypeLinkIGC*    l = m_pMission->GetDroneTypes()->first();
                      (l != NULL);
                      l = l->next())
                 {
                     IdroneTypeIGC*    d = l->data();
-
+#else
+                for( auto d : *(m_pMission->GetDroneTypes()) )
+                {
+#endif
                     if (d->GetRequiredTechs() <= ttbmLocalUltimate)
                     {
                         //It is something we might be able to build and it will actually
@@ -224,12 +303,16 @@ void            CsideIGC::CreateBuckets(void)
 
             {
                 //Add all developments that the side could, potentially, produce
+#ifdef WIN
                 for (StationTypeLinkIGC*    l = m_pMission->GetStationTypes()->first();
                      (l != NULL);
                      l = l->next())
                 {
                     IstationTypeIGC*    s = l->data();
-
+#else
+                for( auto s : *(m_pMission->GetStationTypes() ) )
+                {
+#endif
                     if (s->GetRequiredTechs() <= ttbmLocalUltimate)
                     {
                         //It is something we might be able to build and it will actually
@@ -309,9 +392,14 @@ long CsideIGC::GetProsperityPercentBought(void) const
 {
   // Iterate through each bucket, looking for the prosperity development
   const BucketListIGC* pBuckets = GetBuckets();
+#ifdef WIN
   for (BucketLinkIGC* it = pBuckets->first(); it; it = it->next())
   {
     IbucketIGC* pBucket = it->data();
+#else
+  for( auto pBucket : *(pBuckets) )
+  {
+#endif
     assert(pBucket);
 
     if (OT_development == pBucket->GetBucketType())
@@ -327,9 +415,14 @@ long CsideIGC::GetProsperityPercentComplete(void) const
 {
   // Iterate through each bucket, looking for the prosperity development
   const BucketListIGC* pBuckets = GetBuckets();
+#ifdef WIN
   for (BucketLinkIGC* it = pBuckets->first(); it; it = it->next())
   {
     IbucketIGC* pBucket = it->data();
+#else
+  for( auto pBucket : *(pBuckets) )
+  {
+#endif
     assert(pBucket);
 
     if (OT_development == pBucket->GetBucketType())

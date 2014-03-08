@@ -31,7 +31,11 @@ class CweaponIGC : public IweaponIGC
 
             if (m_mountedFraction < 1.0f)
             {
+#ifdef WIN
                 float dt = now - m_ship->GetLastUpdate();
+#else
+                float dt = (now - m_ship->GetLastUpdate()).count();
+#endif
 
                 m_mountedFraction += dt * m_pMission->GetFloatConstant(c_fcidMountRate);
                 if (m_mountedFraction < 1.0f)
@@ -106,8 +110,11 @@ class CweaponIGC : public IweaponIGC
             if (!m_fActive)
             {
                 m_ship->ChangeSignature(m_typeData->signature);
-
+#ifdef WIN
                 m_nextFire = m_ship->GetLastUpdate() + m_typeData->dtimeBurst;
+#else
+                m_nextFire = m_ship->GetLastUpdate() + Duration(m_typeData->dtimeBurst);
+#endif
 
                 m_fActive = true;
             }

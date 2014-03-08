@@ -111,7 +111,11 @@ HRESULT CmineIGC::Initialize(ImissionIGC* pMission, Time now, const void* data, 
         {
             //lifespan == 0 => immortal mine that can hit until it gets terminated on the next update; this is bad
             assert (dataMineType->lifespan > 0.0f);
+#ifdef WIN
             m_timeExpire = m_time0 + dataMineType->lifespan;
+#else
+            m_timeExpire = m_time0 + Duration(dataMineType->lifespan);
+#endif
             assert (m_timeExpire != m_time0);
         }
         SetMass(0.0f);

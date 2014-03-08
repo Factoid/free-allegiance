@@ -50,11 +50,19 @@ void    CmodelIGC::Terminate(void)
     m_model->AddRef();
 
     {
+#ifdef WIN
         DamageBucketLink*   pdbl;
         while (pdbl = m_damageBuckets.first()) //Intentional =
         {
             delete pdbl->data();
         }
+#else
+        while( !m_damageBuckets.empty() )
+        {
+          delete m_damageBuckets.front();
+          m_damageBuckets.pop_front();
+        }
+#endif
     }
 
     // You will NOT be notified when a model goes away if you set its mission to NULL first
@@ -77,7 +85,11 @@ void    CmodelIGC::Terminate(void)
 void    CmodelIGC::Update(Time now)
 {
     // Model motion now handled by CclusterIGC
+#ifdef WIN
     float   dt = (now - m_lastUpdate);
+#else
+    float dt = (now - m_lastUpdate).count();
+#endif
     m_lastUpdate = now;
 
     if (m_visibleF)
@@ -116,7 +128,11 @@ void   CmodelIGC::LoadCVH(const char*     pszFileName,
     SetMyAttributes(attributes);
     IIgcSite*   pigc = m_pMission->GetIgcSite();
     m_pThingSite = pigc->CreateThingSite(m_model);
+#ifdef WIN
     m_poIcon = pigc->LoadRadarIcon(pszIconName);
+#else
+    m_poIcon.reset( pigc->LoadRadarIcon(pszIconName) );
+#endif
 }
 
 HRESULT   CmodelIGC::LoadEffect(const Color& color, ModelAttributes attributes)

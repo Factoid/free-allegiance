@@ -48,10 +48,17 @@ class CbuildingEffectIGC : public TmodelIGC<IbuildingEffectIGC>
                 m_radiusStation = dataBuilding->radiusStation;
 
                 m_timeEnvelope = pMission->GetIgcSite()->ClientTimeFromServerTime(dataBuilding->timeStart);
+#ifdef WIN
                 m_timeGrow     = m_timeEnvelope + c_dtEnvelope;
                 m_timeOpaque   = m_timeGrow     + c_dtGrow;
                 m_timeShrink   = m_timeOpaque   + c_dtOpaque;
                 m_timeComplete = m_timeShrink   + c_dtShrink;
+#else
+                m_timeGrow     = m_timeEnvelope + Duration(c_dtEnvelope);
+                m_timeOpaque   = m_timeGrow     + Duration(c_dtGrow);
+                m_timeShrink   = m_timeOpaque   + Duration(c_dtOpaque);
+                m_timeComplete = m_timeShrink   + Duration(c_dtShrink);
+#endif
             }
 
             assert (sizeof(DataBuildingEffectIGC) != sizeof(DataBuildingEffectExport));
@@ -60,15 +67,29 @@ class CbuildingEffectIGC : public TmodelIGC<IbuildingEffectIGC>
             if (dataSize == sizeof(DataBuildingEffectIGC))
             {
                 DataBuildingEffectIGC*  dataBuilding = (DataBuildingEffectIGC*)data;
-
+#ifdef WIN
                 m_pshipBuilder = dataBuilding->pshipBuilder;
+#else
+                m_pshipBuilder.reset( dataBuilding->pshipBuilder );
+#endif
                 assert (m_pshipBuilder);
                 m_pshipBuilder->SetStateM(drillingMaskIGC | buildingMaskIGC);
-
+#ifdef WIN
                 m_pside = m_pshipBuilder->GetSide();
+#else
+                m_pside.reset(m_pshipBuilder->GetSide());
+#endif
+#ifdef WIN
                 m_pstationType = (IstationTypeIGC*)(m_pshipBuilder->GetBaseData());
+#else
+                m_pstationType.reset( (IstationTypeIGC*)m_pshipBuilder->GetBaseData() );
+#endif
 
+#ifdef WIN
                 m_pasteroid = dataBuilding->pasteroid;
+#else
+                m_pasteroid.reset( dataBuilding->pasteroid );
+#endif
                 assert (m_pasteroid);
                 m_pasteroid->SetBuildingEffect(this);
 
@@ -82,8 +103,11 @@ class CbuildingEffectIGC : public TmodelIGC<IbuildingEffectIGC>
                 DataBuildingEffectExport*  dataBuilding = (DataBuildingEffectExport*)data;
 
                 pcluster = pMission->GetCluster(dataBuilding->clusterID);
-
+#ifdef WIN
                 m_pasteroid = pcluster->GetAsteroid(dataBuilding->asteroidID);
+#else
+                m_pasteroid.reset( pcluster->GetAsteroid(dataBuilding->asteroidID) );
+#endif
                 assert (m_pasteroid);
                 m_pasteroid->SetBuildingEffect(this);
 
@@ -121,8 +145,11 @@ class CbuildingEffectIGC : public TmodelIGC<IbuildingEffectIGC>
 
             if (m_pshipBuilder)
             {
-                GetMyMission()->GetIgcSite()->KillShipEvent(GetMyLastUpdate(), m_pshipBuilder, NULL,
-                                                            0.0f, m_pshipBuilder->GetPosition(), Vector::GetZero());
+#ifdef WIN
+                GetMyMission()->GetIgcSite()->KillShipEvent(GetMyLastUpdate(), m_pshipBuilder, NULL, 0.0f, m_pshipBuilder->GetPosition(), Vector::GetZero());
+#else
+                GetMyMission()->GetIgcSite()->KillShipEvent(GetMyLastUpdate(), m_pshipBuilder.get(), NULL, 0.0f, m_pshipBuilder->GetPosition(), Vector::GetZero());
+#endif
                 m_pshipBuilder = NULL;
             }
 
@@ -173,8 +200,11 @@ class CbuildingEffectIGC : public TmodelIGC<IbuildingEffectIGC>
 
                 if (now >= m_timeShrink)
                 {
+#ifdef WIN
                     float   f = (now - m_timeShrink) / c_dtShrink;
-
+#else
+                    float f = (now - m_timeShrink).count() / c_dtShrink;
+#endif
                     position = m_positionStop;
                     radius = m_radiusStation * f + m_radiusMax * (1.0f - f);
 
@@ -184,7 +214,11 @@ class CbuildingEffectIGC : public TmodelIGC<IbuildingEffectIGC>
                 }
                 else if (now >= m_timeOpaque)
                 {
+#ifdef WIN
                     float   f = (now - m_timeOpaque) / c_dtOpaque;
+#else
+                    float f = (now - m_timeOpaque).count() / c_dtOpaque;
+#endif
 
                     position = m_positionStop;
                     radius = m_radiusMax;
@@ -195,7 +229,11 @@ class CbuildingEffectIGC : public TmodelIGC<IbuildingEffectIGC>
                 }
                 else if (now >= m_timeGrow)
                 {
+#ifdef WIN
                     float   f = (now - m_timeGrow) / c_dtGrow;
+#else
+                    float   f = (now - m_timeGrow).count() / c_dtGrow;
+#endif
 
                     position = m_positionStop;
                     radius = m_radiusMax * f + m_radiusAsteroid * (1.0f - f);
@@ -205,7 +243,11 @@ class CbuildingEffectIGC : public TmodelIGC<IbuildingEffectIGC>
                 }
                 else
                 {
+#ifdef WIN
                     float   dt = (now - m_timeEnvelope);
+#else
+                    float dt = (now-m_timeEnvelope).count();
+#endif
                     float   f = (dt > 0.0f) ? (dt / c_dtEnvelope) : 0.0f;
 
                     position = m_positionStop * f + m_positionStart * (1.0f - f);
@@ -298,7 +340,11 @@ class CbuildingEffectIGC : public TmodelIGC<IbuildingEffectIGC>
 
         virtual IasteroidIGC*    GetAsteroid(void) const
         {
+#ifdef WIN
             return m_pasteroid;
+#else
+            return m_pasteroid.get();
+#endif
         }
 
         virtual void    MakeUnhitable(void)
@@ -316,10 +362,11 @@ class CbuildingEffectIGC : public TmodelIGC<IbuildingEffectIGC>
                 //transform the asteroid into the station
                 assert (m_pstationType);
                 assert (m_pside);
-
-                GetMyMission()->GetIgcSite()->SendChatf(m_pshipBuilder, CHAT_TEAM, m_pside->GetObjectID(),
-                                                        m_pstationType->GetCompletionSound(), 
-                                                        "Finished building %s", m_pstationType->GetName());
+#ifdef WIN
+                GetMyMission()->GetIgcSite()->SendChatf(m_pshipBuilder, CHAT_TEAM, m_pside->GetObjectID(), m_pstationType->GetCompletionSound(), "Finished building %s", m_pstationType->GetName());
+#else
+                GetMyMission()->GetIgcSite()->SendChatf(m_pshipBuilder.get(), CHAT_TEAM, m_pside->GetObjectID(), m_pstationType->GetCompletionSound(), "Finished building %s", m_pstationType->GetName());
+#endif
 
 				//Imago #120 #121 8/10
 				bool bseenside[c_cSidesMax] = {false};
@@ -327,28 +374,44 @@ class CbuildingEffectIGC : public TmodelIGC<IbuildingEffectIGC>
 								
                 //Quietly kill the ship (after nuking its parts to prevent treasure from being created)
                 {
+#ifdef WIN
                     const PartListIGC*  parts = m_pshipBuilder->GetParts();
                     PartLinkIGC*    plink;
                     while (plink = parts->first())  //Not ==
                         plink->data()->Terminate();
+#else
+                    const PartListIGC*  parts = m_pshipBuilder->GetParts();
+                    for( auto part : *parts )
+                    {
+                      part->Terminate();
+                    }
+#endif
                 }
                 m_pshipBuilder->SetAmmo(0);
                 m_pshipBuilder->SetFuel(0.0f);
 
                 m_pshipBuilder->SetStateM(0);
 
+#ifdef WIN
                 GetMyMission()->GetIgcSite()->KillShipEvent(now, m_pshipBuilder, NULL, 0.0f, m_pshipBuilder->GetPosition(), Vector::GetZero());
-
+#else
+                GetMyMission()->GetIgcSite()->KillShipEvent(now, m_pshipBuilder.get(), NULL, 0.0f, m_pshipBuilder->GetPosition(), Vector::GetZero());
+#endif
                 m_pshipBuilder = NULL;
 
+#ifdef WIN
                 IasteroidIGC*   pasteroid = m_pasteroid;
+#else
+                IasteroidIGC*   pasteroid = m_pasteroid.get();
+#endif
+
                 m_pasteroid->SetBuildingEffect(NULL);     //Clear the building effect so it isn't nuked along with the asteroid
                 assert (m_pasteroid == NULL);
-
-                GetMyMission()->GetIgcSite()->BuildStation(pasteroid,
-                                                           m_pside,
-                                                           m_pstationType,
-                                                           now, bseenside); //Imago #121 - Selective pop rocks
+#ifdef WIN
+                GetMyMission()->GetIgcSite()->BuildStation(pasteroid, m_pside, m_pstationType, now, bseenside); //Imago #121 - Selective pop rocks
+#else
+                GetMyMission()->GetIgcSite()->BuildStation(pasteroid, m_pside.get(), m_pstationType.get(), now, bseenside); //Imago #121 - Selective pop rocks
+#endif
             }
         }
 

@@ -45,15 +45,15 @@ class CwarpIGC : public TmodelIGC<IwarpIGC>
                 m_destination->Release();
                 m_destination = NULL;
             }
-
+#ifdef WIN
             m_bombs.purge();
-
+#endif
             Release();
         }
         virtual void            Update(Time   now)
         {
             WarpBombLink*   plink;
-
+#ifdef WIN
             while ((plink = m_bombs.first()) &&               //Intentional =
                    (plink->data().timeExplosion <= now))
             {
@@ -87,6 +87,30 @@ class CwarpIGC : public TmodelIGC<IwarpIGC>
 
                 delete plink;
             }
+#else
+            std::list<WarpBombList::iterator> purge_list;
+            for( auto i = m_bombs.begin(); i != m_bombs.end(); ++i )
+            {
+              if( i->timeExplosion > now ) continue;
+              ImissileTypeIGC*    pmt = i->pmt;
+              assert (pmt);
+              assert (pmt->GetObjectType() == OT_missileType);
+
+              DamageTypeID    dtid = pmt->GetDamageType();
+              float           p    = pmt->GetPower();
+              float           r    = pmt->GetBlastRadius();
+
+              IclusterIGC*    pcluster = GetCluster();
+              if (pmt->HasCapability(c_eabmWarpBombDual)) // KGJV- only Dual explode this side
+                pcluster->CreateExplosion(dtid,p,r,c_etBigShip,i->timeExplosion,GetPosition(),NULL);
+
+              IwarpIGC*   pwarp = GetDestination();
+              pcluster = pwarp->GetCluster();
+              pcluster->CreateExplosion(dtid,p,r,c_etBigShip,i->timeExplosion,pwarp->GetPosition(),NULL);
+              purge_list.push_back(i);
+            }
+            for( auto i : purge_list ) m_bombs.erase(i);
+#endif
 
             TmodelIGC<IwarpIGC>::Update(now);
         }
@@ -142,13 +166,23 @@ class CwarpIGC : public TmodelIGC<IwarpIGC>
         virtual void         AddBomb(Time               timeExplosion,
                                      ImissileTypeIGC*   pmt)
         {
+#ifdef WIN
             WarpBombLink*   p = new WarpBombLink;
             p->data().timeExplosion = timeExplosion;
             p->data().pmt = pmt;
+#else
+            WarpBomb b;
+            b.timeExplosion = timeExplosion;
+            b.pmt = pmt;
+#endif
 
             // add the pulse effects
             Color       blastColor (0.6f, 0.8f, 1.0f);
+#ifdef WIN
             float       fExplodeTime = timeExplosion - Time::Now ();
+#else
+            float fExplodeTime = (timeExplosion - Clock::now()).count();
+#endif
             GetCluster ()->GetClusterSite ()->AddPulse (fExplodeTime, GetPosition (), pmt->GetBlastRadius (), blastColor);
             IwarpIGC*   pDestination = GetDestination();
             pDestination->GetCluster ()->GetClusterSite ()->AddPulse (fExplodeTime, m_destination->GetPosition (), pmt->GetBlastRadius (), blastColor);
@@ -158,8 +192,11 @@ class CwarpIGC : public TmodelIGC<IwarpIGC>
             pThingSite->AddPulse (fExplodeTime, GetPosition (), pmt->GetBlastRadius (), blastColor);
             pThingSite = pDestination->GetThingSite ();
             pThingSite->AddPulse (fExplodeTime, GetPosition (), pmt->GetBlastRadius (), blastColor);
-
+#ifdef WIN
             m_bombs.last(p);
+#else
+            m_bombs.push_back(b);
+#endif
         }
 
         virtual const WarpBombList* GetBombs(void) const

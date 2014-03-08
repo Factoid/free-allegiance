@@ -99,7 +99,12 @@ HRESULT     CtreasureIGC::Initialize(ImissionIGC* pMission, Time now, const void
         m_speed0 = m_data.v0.Length();
         m_stationaryF = (m_speed0 == 0.0f);
         {
+#ifdef WIN
             float   dt = now - m_data.time0;
+#else
+            float   dt = (now - m_data.time0).count();
+#endif
+
             if (m_speed0 <= c_deceleration * dt)
             {
                 //drifted to a stop
@@ -194,8 +199,11 @@ HRESULT     CtreasureIGC::Initialize(ImissionIGC* pMission, Time now, const void
         SetRadius(5.0f);		//NYI -- needs to be gotten from the DB
 
         SetMass(0.0f);
-
+#ifdef WIN
         m_expire = m_data.time0 + m_data.lifespan;
+#else
+        m_expire = (m_data.time0 + Duration(m_data.lifespan));
+#endif
 
         SetPosition(*pposition);
         SetVelocity(*pvelocity);
@@ -221,7 +229,11 @@ void CtreasureIGC::Update(Time now)
     {
         if ((!m_stationaryF) && (now > m_data.time0))
         {
+#ifdef WIN
             float   dt1 = GetMyLastUpdate() - m_data.time0;
+#else
+            float   dt1 = (GetMyLastUpdate() - m_data.time0).count();
+#endif
             float   v1 = m_speed0 - c_deceleration * dt1;
             if (v1 <= 0.0f)
             {
@@ -248,7 +260,11 @@ void CtreasureIGC::Update(Time now)
                 }
                 else
                 {
+#ifdef WIN
                     float   dt2 = now - m_data.time0;
+#else
+                    float   dt2 = (now - m_data.time0).count();
+#endif
                     float   v2 = m_speed0 - c_deceleration * dt2;
 
                     Vector  p2 = (v2 > 0.0f)
@@ -256,8 +272,11 @@ void CtreasureIGC::Update(Time now)
                                     m_data.v0 *
                                     (dt2 - 0.5f * dt2 * dt2 * c_deceleration / m_speed0))
                                  : (m_data.p0 + m_data.v0 * (0.5f * m_speed0 / c_deceleration));
-
+#ifdef WIN
                     SetVelocity((p2 - p1) / (now - GetMyLastUpdate()));
+#else
+                    SetVelocity((p2 - p1) / (now - GetMyLastUpdate()).count());
+#endif
                 }
             }
         }

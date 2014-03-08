@@ -126,9 +126,14 @@ void    CweaponIGC::SetMountID(Mount newVal)
 
             //Is there a turret gunner in this position (who does not have a gun)
             {
+#ifdef WIN
                 for (ShipLinkIGC*   psl = m_ship->GetChildShips()->first(); (psl != NULL); psl = psl->next())
                 {
                     IshipIGC*   pship = psl->data();
+#else
+                for( auto pship : *(m_ship->GetChildShips()) )
+                {
+#endif
                     if (pship->GetTurretID() == newVal)
                     {
                         SetGunner(pship);
@@ -162,8 +167,11 @@ void        CweaponIGC::FireWeapon(Time now)
         {
             //We'd be able to fire before now and would have enough energy at now to fire, so ...
             float   rechargeRate = m_ship->GetHullType()->GetRechargeRate();
-
+#ifdef WIN
             float   energyDeficit = (m_nextFire - now) *            //this is how much we are in the hole because we
+#else
+            float energyDeficit = (m_nextFire - now).count() *
+#endif
                                     rechargeRate;                   //are shooting sooner than "now" (must be < 0)
 
             short     ammo = m_ship->GetAmmo();
@@ -250,7 +258,11 @@ void        CweaponIGC::FireWeapon(Time now)
                     if (energy + energyDeficit < m_typeData->energyPerShot)
                     {
                         //We don't have enough energy to fire at our prefered time ... so wait until we do.
+#ifdef WIN
                         m_nextFire += (m_typeData->energyPerShot - (energy + energyDeficit)) / rechargeRate;
+#else
+                        m_nextFire += Duration((m_typeData->energyPerShot - (energy + energyDeficit)) / rechargeRate);
+#endif
                     }
 
                     //Permute the "forward" direction slightly by a random amount
@@ -268,8 +280,11 @@ void        CweaponIGC::FireWeapon(Time now)
                     dataProjectile.velocity = speed * dataProjectile.forward;
                     if (!absoluteF)
                         dataProjectile.velocity += myVelocity;
-
+#ifdef WIN
                     Vector  position = myPosition + myVelocity * (m_nextFire - lastUpdate);
+#else
+                    Vector  position = myPosition + myVelocity * (m_nextFire - lastUpdate).count();
+#endif
                     dataProjectile.lifespan = lifespan;
                     if (ptarget)
                     {
@@ -307,8 +322,11 @@ void        CweaponIGC::FireWeapon(Time now)
                     energyDeficit += rechargeRate * dtimeBurst;
                     energy -= m_typeData->energyPerShot;
                     ammo -= m_typeData->cAmmoPerShot;
-
+#ifdef WIN
                     m_nextFire += dtimeBurst;
+#else
+                    m_nextFire += Duration(dtimeBurst);
+#endif
                 }
                 while ((nShots-- > 0) &&
                        (m_nextFire < now) &&

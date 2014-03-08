@@ -24,7 +24,11 @@ class       CsideIGC : public IsideIGC
         CsideIGC(void)
         :
             m_activeF(false), // sides are inactive until mission creation is over
+#ifdef WIN
             m_dwPrivate(NULL)
+#else
+            m_dwPrivate(0)
+#endif
         {
         }
 
@@ -40,13 +44,17 @@ class       CsideIGC : public IsideIGC
         virtual void                    Update(Time now)
         {
             //Update the buckets attached to the station.
-            for (BucketLinkIGC* l = m_buckets.first();
-                 (l != NULL);
-                 l = l->next())
+#ifdef WIN
+            for (BucketLinkIGC* l = m_buckets.first(); (l != NULL); l = l->next())
             {
                 l->data()->Update(now);
             }
-
+#else
+            for( auto b : m_buckets )
+            {
+              b->Update(now);
+            }
+#endif
             m_lastUpdate = now;
         }
 
@@ -85,15 +93,23 @@ class       CsideIGC : public IsideIGC
 
                 // set the tech bits for the new civ
                 m_data.ttbmDevelopmentTechs = GetCivilization()->GetBaseTechs();
+#ifdef WIN
                 m_ttbmBuildingTechs.ClearAll();
+#else
+                m_ttbmBuildingTechs.reset();
+#endif
                 m_data.civilizationID = GetCivilization()->GetObjectID();
 
                 //Turn all space stations into the base space station for the new civ
                 {
+#ifdef WIN
                     for (StationLinkIGC*    psl = m_stations.first(); (psl != NULL); psl = psl->next())
                     {
                         IstationIGC*    pstation = psl->data();
-
+#else
+                    for( auto pstation : m_stations )
+                    {
+#endif
                         pstation->SetBaseStationType(pciv->GetInitialStationType());
                     }
                 }
@@ -105,13 +121,19 @@ class       CsideIGC : public IsideIGC
 
         void                SetName(const char* newVal)
         {
-			//Rock / Imago 7/28/09
-			ZString strName = newVal;
-			int istart = strName.ReverseFind("\x81");
-			int iend = strName.ReverseFind("\x82");
-			if ( (istart != -1 && iend == -1) || iend < istart)
-				strName += END_COLOR_STRING;
-			UTL::putName(m_data.name, (PCC)strName);
+          //Rock / Imago 7/28/09
+          ZString strName = newVal;
+#ifdef WIN
+          int istart = strName.ReverseFind("\x81");
+          int iend = strName.ReverseFind("\x82");
+          if ( (istart != -1 && iend == -1) || iend < istart)
+            strName += END_COLOR_STRING;
+#endif
+#ifdef WIN
+          UTL::putName(m_data.name, (PCC)strName);
+#else
+          UTL::putName(m_data.name, (PCC)strName.c_str());
+#endif
         }
 
         virtual const char*             GetName(void) const
@@ -142,15 +164,26 @@ class       CsideIGC : public IsideIGC
         {
             //See what the new set of building techs is, from scratch
             TechTreeBitMask ttbm;
+#ifdef WIN
             ttbm.ClearAll();
+#else
+            ttbm.reset();
+#endif
 
             {
+#ifdef WIN
                 for (StationLinkIGC*    l = m_stations.first();
                      (l != NULL);
                      l = l->next())
                 {
                     ttbm |= l->data()->GetStationType()->GetEffectTechs();
                 }
+#else
+                for( auto s : m_stations )
+                {
+                  ttbm |= s->GetStationType()->GetEffectTechs();
+                }
+#endif
             }
 
             SetBuildingTechs(ttbm);
@@ -254,10 +287,15 @@ class       CsideIGC : public IsideIGC
                 //Station type or drone type: these are built at stations so see if any station
                 //can build them.
                 bAvailable = false;
+#ifdef WIN
                 for (StationLinkIGC*    psl = m_stations.first(); (psl != NULL); psl = psl->next())
                 {
-                    TechTreeBitMask  ttbmStation = psl->data()->GetStationType()->GetLocalTechs() |
-                                                   ttbmSide;
+                    TechTreeBitMask  ttbmStation = psl->data()->GetStationType()->GetLocalTechs() | ttbmSide;
+#else
+                for( auto s : m_stations )
+                {
+                  TechTreeBitMask ttbmStation = s->GetStationType()->GetLocalTechs() | ttbmSide;
+#endif
 
                     if (ttbmRequired <= ttbmStation)
                     {
@@ -383,7 +421,7 @@ class       CsideIGC : public IsideIGC
         virtual void                        AddToStockpile(IbuyableIGC* b, short count)
         {
             assert (count > 0);
-
+#ifdef WIN
             //See if there are already entries in the stockpile
             StockpileLink*  plink = m_stockpile.first();
             {
@@ -407,11 +445,26 @@ class       CsideIGC : public IsideIGC
 
             assert (plink);
             plink->data().count += count;
+#else
+            for( auto s : m_stockpile )
+            {
+              if( s.buyable.get() == b )
+              {
+                s.count += count;
+                return;
+              }
+            }
+
+            Stockpile s;
+            s.buyable.reset(b);
+            s.count = count;
+            m_stockpile.push_front(s);
+#endif
         }
         virtual short                        RemoveFromStockpile(IbuyableIGC* b, short count)
         {
             assert (count > 0);
-
+#ifdef WIN
             StockpileLink*  plink = m_stockpile.first();
             while (plink)
             {
@@ -432,11 +485,23 @@ class       CsideIGC : public IsideIGC
 
                 plink = plink->next();
             }
-
-            return 0;
+#else
+            auto i = std::find_if( m_stockpile.begin(), m_stockpile.end(), [&] (decltype(m_stockpile.front()) obj) { return obj.buyable.get() == b; } );
+            if( i == m_stockpile.end() ) return 0;
+            if( i->count < count )
+            {
+              count = i->count;
+              m_stockpile.erase(i);
+            } else
+            {
+              i->count -= count;
+            }
+            return count;
+#endif
         }
         virtual short                       GetStockpile(IbuyableIGC* b) const
         {
+#ifdef WIN
             StockpileLink*  plink = m_stockpile.first();
             while (plink)
             {
@@ -447,6 +512,11 @@ class       CsideIGC : public IsideIGC
             }
 
             return 0;
+#else
+            auto i = std::find_if( m_stockpile.begin(), m_stockpile.end(), [&] (decltype(m_stockpile.front()) obj) { return obj.buyable.get() == b; } );
+            if( i == m_stockpile.end() ) return 0;
+            return i->count;
+#endif
         }
         virtual const StockpileList*        GetStockpile(void) const
         {
@@ -579,11 +649,14 @@ class       CsideIGC : public IsideIGC
         void    AdjustBuckets(void)
         {
             //Empty the side buckets we can no longer build
-            for (BucketLinkIGC* l = m_buckets.first();
-                 (l != NULL);
-                 l = l->next())
+#ifdef WIN
+            for (BucketLinkIGC* l = m_buckets.first(); (l != NULL); l = l->next())
             {
                 IbucketIGC* b = l->data();
+#else
+            for( auto b : m_buckets )
+            {
+#endif
                 if (!b->GetCompleteF())
                 {
                     IbuyableIGC*    pbuy = b->GetBuyable();
@@ -615,11 +688,14 @@ class       CsideIGC : public IsideIGC
                                 if (pstSuccessor != pbuy)
                                 {
                                     //Find the bucket that corresponds to the successor station
-                                    for (BucketLinkIGC* l2 = m_buckets.first();
-                                         (l2 != NULL);
-                                         l2 = l2->next())
+#ifdef WIN
+                                    for (BucketLinkIGC* l2 = m_buckets.first(); (l2 != NULL); l2 = l2->next())
                                     {
                                         IbucketIGC* b2 = l2->data();
+#else
+                                    for( auto b2 : m_buckets )
+                                    {
+#endif
                                         if (b2->GetBuyable() == pstSuccessor)
                                         {
                                             b2->SetTimeAndMoney(time, money);

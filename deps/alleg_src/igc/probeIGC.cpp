@@ -69,7 +69,14 @@ HRESULT CprobeIGC::Initialize(ImissionIGC* pMission, Time now, const void* data,
             pshipLauncher = pside->GetShip(dataProbeExport->shipID);
 
             if (m_probeType->HasCapability(c_eabmShootOnlyTarget))
+            {
+#ifdef WIN
                 m_target = pMission->GetModel(dataProbeExport->otTarget, dataProbeExport->oidTarget);
+#else
+                m_target.reset(pMission->GetModel(dataProbeExport->otTarget, dataProbeExport->oidTarget));
+#endif
+            }
+
         }
         else
         {
@@ -84,7 +91,13 @@ HRESULT CprobeIGC::Initialize(ImissionIGC* pMission, Time now, const void* data,
             pshipLauncher = dataProbe->pship;
 
             if (m_probeType->HasCapability(c_eabmShootOnlyTarget))
+            {
+#ifdef WIN
                 m_target = dataProbe->pmodelTarget;
+#else
+                m_target.reset( dataProbe->pmodelTarget );
+#endif
+            }
         }
 
         assert (m_probeType);
@@ -99,9 +112,14 @@ HRESULT CprobeIGC::Initialize(ImissionIGC* pMission, Time now, const void* data,
         {
             m_projectileType->AddRef();
             m_bSeenByAll = false;
-
             if (pshipLauncher && (dataProbeType->launcherDef.price == 0))
+            {
+#ifdef WIN
                 m_launcher = pshipLauncher;
+#else
+                m_launcher.reset(pshipLauncher);
+#endif
+            }
         }
 
         assert (pcluster);
@@ -129,13 +147,21 @@ HRESULT CprobeIGC::Initialize(ImissionIGC* pMission, Time now, const void* data,
 
         //lifespan == 0 => immortal probe that can hit until it gets terminated on the next update; this is bad
         assert (dataProbeType->lifespan > 0.0f);
+#ifdef WIN
         m_timeExpire = m_time0 + dataProbeType->lifespan;
+#else
+        m_timeExpire = m_time0 + Duration(dataProbeType->lifespan);
+#endif
         assert (m_timeExpire != m_time0);
 
-
         m_nextFire = m_time0 + (m_probeType->HasCapability(c_eabmQuickReady)
+#ifdef WIN
                                 ? 5.0f        //5 second delay
                                 : 30.0f);     //30 second delay before we start to shoot
+#else
+                                ? Duration(5.0f)        //5 second delay
+                                : Duration(30.0f));     //30 second delay before we start to shoot
+#endif
 
         assert (GetSide());
         SetMass(0.0f);
@@ -146,8 +172,11 @@ HRESULT CprobeIGC::Initialize(ImissionIGC* pMission, Time now, const void* data,
         SetCluster(pcluster);
 
         pMission->AddProbe(this);
-
+#ifdef WIN
         if ((dataProbeType->dtRipcord >= 0.0f) && ((GetMyLastUpdate() - m_time0) >= dataProbeType->dtRipcord))
+#else
+        if ((dataProbeType->dtRipcord >= 0.0f) && ((GetMyLastUpdate() - m_time0).count() >= dataProbeType->dtRipcord))
+#endif
         {
             pMission->GetIgcSite()->ActivateTeleportProbe(this);
         }
@@ -164,55 +193,68 @@ HRESULT CprobeIGC::Initialize(ImissionIGC* pMission, Time now, const void* data,
 			Orientation warp_orient;
 			Rotation warp_rot;
 			// loop through list of warps
-            for (WarpLinkIGC*   pwl = pcluster->GetWarps()->first(); (pwl != NULL); pwl = pwl->next())
-                {
-					IwarpIGC*   pwarp = pwl->data();
-					warp_rad = pwarp->GetRadius();
-					warp_orient = pwarp->GetOrientation();
-					warpV = pwarp->GetPosition();
-					probeV = this->GetPosition();
-					dV= warpV-probeV;
-					distance = dV.Length();
-					warp_rot = pwarp->GetRotation();
+#ifdef WIN
+      for (WarpLinkIGC*   pwl = pcluster->GetWarps()->first(); (pwl != NULL); pwl = pwl->next())
+      {
+        IwarpIGC*   pwarp = pwl->data();
+#else
+      for( auto pwarp : *(pcluster->GetWarps()) )
+      {
+#endif
+        warp_rad = pwarp->GetRadius();
+        warp_orient = pwarp->GetOrientation();
+        warpV = pwarp->GetPosition();
+        probeV = this->GetPosition();
+        dV= warpV-probeV;
+        distance = dV.Length();
+        warp_rot = pwarp->GetRotation();
 
-					// if rotating (i.e. rotation is other than 0 0 1 0) abort check
-					if (!((warp_rot.x()==0) && (warp_rot.y()==0) && (warp_rot.z()==1) && (warp_rot.angle()==0)))
-						break;
-					if (distance < (warp_rad * 2) ) {  // only check if close to tip if reasonably close to warp center
-						bV = warp_orient.GetBackward();
-						tipV = warpV + (bV*warp_rad);
-						tipdistV = tipV-probeV;
-						distance = tipdistV.Length();
-						if (distance < 30) {
-							debugf("Destroying probe as it was dropped too close (within 30) of aleph(warp) tip. dist = $f\n",distance);
-							return S_FALSE; // this will destroy the probe
-						}
-					}
-				}
+        // if rotating (i.e. rotation is other than 0 0 1 0) abort check
+        if (!((warp_rot.x()==0) && (warp_rot.y()==0) && (warp_rot.z()==1) && (warp_rot.angle()==0)))
+          break;
+        if (distance < (warp_rad * 2) ) {  // only check if close to tip if reasonably close to warp center
+          bV = warp_orient.GetBackward();
+          tipV = warpV + (bV*warp_rad);
+          tipdistV = tipV-probeV;
+          distance = tipdistV.Length();
+          if (distance < 30) {
+            debugf("Destroying probe as it was dropped too close (within 30) of aleph(warp) tip. dist = $f\n",distance);
+            return S_FALSE; // this will destroy the probe
+          }
+        }
+      }
 		}		
 		// mmf end	
 
 		// mmf added code to detect tp drop near asteroid and if too close destroy it
 		//     leave ActivateTeleProbe code above so enemy is alerted to the drop even though it may be destroyed
-		if (dataProbeType->dtRipcord >= 0.0f)  // check to see if this is a teleprobe
-		{
-			Vector dV;
-			float asteroid_rad, distance;
-			// loop through list of asteroids
-            for (AsteroidLinkIGC*   pal = pcluster->GetAsteroids()->first(); (pal != NULL); pal = pal->next())
-                {
-                    asteroid_rad = (pal->data()->GetRadius());
-                    dV=this->GetPosition() - pal->data()->GetPosition();
-					distance = dV.Length();
-					if (distance < (asteroid_rad-5)) {
-						debugf("Teleprobe dropped too close to asteroid (within -5) destroying probe. dist = %f, asteroid rad = %f\n",
-							distance,asteroid_rad);
-						// this->Terminate(); should be terminated when missionigc processes S_FALSE
-						return S_FALSE; 
-					}
-				}
-		}		
-		// mmf end	
+      if (dataProbeType->dtRipcord >= 0.0f)  // check to see if this is a teleprobe
+      {
+        Vector dV;
+        float asteroid_rad, distance;
+        // loop through list of asteroids
+#ifdef WIN
+        for (AsteroidLinkIGC*   pal = pcluster->GetAsteroids()->first(); (pal != NULL); pal = pal->next())
+        {
+          asteroid_rad = (pal->data()->GetRadius());
+          dV=this->GetPosition() - pal->data()->GetPosition();
+#else
+        for( auto a : *(pcluster->GetAsteroids()) )
+        {
+          asteroid_rad = (a->GetRadius());
+          dV=this->GetPosition() - a->GetPosition();
+#endif
+          distance = dV.LengthSquared();
+          float minDist = asteroid_rad-5;
+          if (distance < (minDist*minDist)) {
+            debugf("Teleprobe dropped too close to asteroid (within -5) destroying probe. dist = %f, asteroid rad = %f\n",
+                sqrt(distance),asteroid_rad);
+            // this->Terminate(); should be terminated when missionigc processes S_FALSE
+            return S_FALSE; 
+          }
+        }
+      }		
+      // mmf end	
 	}
 
     return S_OK;
@@ -309,10 +351,14 @@ inline void  CprobeIGC::GetTarget(const ModelListIGC*  models,
                               float*               pdistance2Min,
                               Vector*              pdirectionMin)
 {
+#ifdef WIN
     for (ModelLinkIGC*   l = models->first(); (l != NULL); l = l->next())
     {
         ImodelIGC*   pmodel = l->data();
-
+#else
+    for( auto pmodel : *models )
+    {
+#endif
         assert (pmodel->GetObjectType() == type);
 
         ValidTarget(pmodel, 
@@ -339,7 +385,12 @@ void    CprobeIGC::Update(Time now)
             float   dt = m_probeType->GetRipcordDelay();
             if (dt >= 0.0f)
             {
+#ifdef WIN
                 Time    timeActivate = m_time0 + dt;
+#else
+                Time timeActivate = m_time0 + Duration(dt);
+#endif
+
                 if ((GetMyLastUpdate() < timeActivate) &&
                     (now >= timeActivate))
                 {
@@ -375,8 +426,11 @@ void    CprobeIGC::Update(Time now)
 
                 TmodelIGC<IprobeIGC>::Update(now);
 
+#ifdef WIN
                 float   dtUpdate = m_nextFire - lastUpdate;
-
+#else
+                float dtUpdate = (m_nextFire - lastUpdate).count();
+#endif
                 //If we have a target ... find the closest enemy ship who is a valid target
                 ExpendableAbilityBitMask    eabm = m_probeType->GetCapabilities();
                 float       distance2Min = speed * lifespan / 1.2f;
@@ -391,7 +445,11 @@ void    CprobeIGC::Update(Time now)
                     if (m_target && (m_target->GetCluster() == pcluster))
                     {
                         ObjectType  type = m_target->GetObjectType();
+#ifdef WIN
                         ValidTarget((type == OT_ship) ? ((IshipIGC*)(ImodelIGC*)m_target)->GetSourceShip() : m_target,
+#else
+                        ValidTarget((type == OT_ship) ? ((IshipIGC*)(ImodelIGC*)m_target.get())->GetSourceShip() : m_target.get(),
+#endif
                                     pside, myPosition, dtUpdate, accuracy, speed, lifespan, type,
                                     &pmodelTarget, &distance2Min, &directionMin);
                     }
@@ -430,18 +488,26 @@ void    CprobeIGC::Update(Time now)
                     if (!m_bSeenByAll)
                     {
                         m_bSeenByAll = true;
+#ifdef WIN
                         for (SideLinkIGC*   psl = m_pMission->GetSides()->first();
                              (psl != NULL);
                              psl = psl->next())
                         {
                             IsideIGC*   psideOther = psl->data();
-
+#else
+                        for( auto psideOther : *(m_pMission->GetSides()) )
+                        {
+#endif
                             if (!SeenBySide(psideOther))
                             {
                                 //Does this side have any scanners in the sector?
                                 ClusterSite*    pcs = pcluster->GetClusterSite();
                                 const ScannerListIGC*   psl = pcs->GetScanners(psideOther->GetObjectID());
+#ifdef WIN
                                 if ((psl->n() != 0) || (m_pMission->GetMissionParams()->bAllowAlliedViz && psideOther->AlliedSides(psideOther,pside))) //ALLY 7/3/09 VISIBILITY 7/11/09 imago
+#else
+                                if ((!psl->empty()) || (m_pMission->GetMissionParams()->bAllowAlliedViz && psideOther->AlliedSides(psideOther,pside))) //ALLY 7/3/09 VISIBILITY 7/11/09 imago
+#endif
                                     SetSideVisibility(psideOther, true);
                                 else
                                     m_bSeenByAll = false;
@@ -482,7 +548,11 @@ void    CprobeIGC::Update(Time now)
                                                                                         &dataProjectile, sizeof(dataProjectile)));
                         assert (p);
                         {
+#ifdef WIN
                             p->SetLauncher(m_launcher ? ((ImodelIGC*)m_launcher) : ((ImodelIGC*)this));
+#else
+                            p->SetLauncher(m_launcher ? ((ImodelIGC*)m_launcher.get()) : ((ImodelIGC*)this));
+#endif
                             p->SetPosition(position);
 
                             p->SetCluster(pcluster);
@@ -491,7 +561,11 @@ void    CprobeIGC::Update(Time now)
                         }
 
                         nShots++;
+#ifdef WIN
                         m_nextFire += dtimeBurst;
+#else
+                        m_nextFire += Duration(dtimeBurst);
+#endif
                     }
                     while (m_nextFire < now);
 

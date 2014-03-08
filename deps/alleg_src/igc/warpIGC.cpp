@@ -63,10 +63,18 @@ HRESULT     CwarpIGC::Initialize(ImissionIGC* pMission, Time now, const void* da
 					if (dataWarp->name[1] == '+')//Andon: Added for if the aleph is both unmoved and mass limited
 					{
 						ZString name = dataWarp->name;
-						int MassFind = name.Find(':',0); 
+#ifdef WIN
+						int MassFind = name.Find(':',0);
+#else
+            int MassFind = name.find_first_of(':');
+#endif
 						char* mass = &(dataWarp->name[MassFind+2]); 
 						m_MassLimit = atoi(mass);
+#ifdef WIN
 						name.ReplaceAll(":" ,'('); //Replaces the : with a (
+#else
+            std::replace(name.begin(),name.end(),':','(');
+#endif
 						const char* alephname = &(name[2]); //Removes the leading '*+'
 						char* newAlephName = new char[25];
 						const char* nameSuffix = ")"; //Adds a ) to the end
@@ -83,10 +91,18 @@ HRESULT     CwarpIGC::Initialize(ImissionIGC* pMission, Time now, const void* da
 				else if (dataWarp->name[0] == '+')
 				{
 					ZString name = dataWarp->name;
-					int MassFind = name.Find(':',0);
+#ifdef WIN
+						int MassFind = name.Find(':',0);
+#else
+            int MassFind = name.find_first_of(':');
+#endif
 					char* mass = &(dataWarp->name[MassFind+1]);
 					m_MassLimit = atoi(mass);
-					name.ReplaceAll(":" ,'('); //Replaces the : with a (
+#ifdef WIN
+						name.ReplaceAll(":" ,'('); //Replaces the : with a (
+#else
+            std::replace(name.begin(),name.end(),':','(');
+#endif
 					const char* alephname = &(name[1]);//Skip the leading '+'
 					char* newAlephName = new char[25];
 					const char* nameSuffix = ")"; //Adds a ) to the end

@@ -371,7 +371,11 @@ void CstationIGC::Launch(IshipIGC* pship)
 		//Imago 6/10
 		Time    lastUpdate = pcluster->GetLastUpdate();
 		Time    lastLaunch = GetLastLaunch();
+#ifdef WIN
 		float	m_fDeltaTime = (float)(lastUpdate - lastLaunch);
+#else
+		float	m_fDeltaTime = (lastUpdate - lastLaunch).count();
+#endif
 		//debugf(" *** %s(%i) launch time cluster delta = %f\n\n", m_myStationType.GetName(), m_myStationType.GetObjectID(), m_fDeltaTime);
 		if (m_fDeltaTime <= 0.1f) {
 			 position += forward * (pship->GetRadius() + vLaunch * 0.85f);
@@ -396,8 +400,13 @@ void CstationIGC::Launch(IshipIGC* pship)
     pship->SetCurrentTurnRate(c_axisRoll, 0.0f);
 
     pship->SetCluster(pcluster);
+#ifdef WIN
 	pship->SetLastTimeLaunched(Time::Now());
 	SetLastLaunch(Time::Now());
+#else
+  pship->SetLastTimeLaunched(Clock::now());
+  SetLastLaunch(Clock::now());
+#endif
 }
 
 bool    CstationIGC::InGarage(IshipIGC* pship, const Vector& position)
@@ -470,12 +479,19 @@ void    CstationIGC::RepairAndRefuel(IshipIGC* pship) const
 
     //Fully mount all parts
     {
+#ifdef WIN
         for (PartLinkIGC*   ppl = pship->GetParts()->first();
              (ppl != NULL);
              ppl = ppl->next())
         {
             ppl->data()->SetMountedFraction(1.0f);
         }
+#else
+        for( auto part : *(pship->GetParts()) )
+        {
+          part->SetMountedFraction(1.0f);
+        }
+#endif
     }
 
     if (m_myStationType.HasCapability(c_sabmRepair))
@@ -509,12 +525,16 @@ void    CstationIGC::RepairAndRefuel(IshipIGC* pship) const
 
         pship->SetAmmo(maxAmmo);
         pship->SetFuel(maxFuel);
-
+#ifdef WIN
         for (PartLinkIGC*   ppl = pship->GetParts()->first();
              (ppl != NULL);
              ppl = ppl->next())
         {
             IpartIGC*   ppart = ppl->data();
+#else
+        for( auto ppart : *(pship->GetParts() ) )
+        {
+#endif
             if (ppart->GetObjectType() == OT_pack)
             {
                 IpackIGC*   ppack = (IpackIGC*)ppart;

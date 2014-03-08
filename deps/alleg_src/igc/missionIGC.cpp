@@ -53,8 +53,11 @@
 #include    "stationTypeIGC.h"
 #include    "developmentIGC.h"
 #include    "droneTypeIGC.h"
-#include    "bucketigc.h"
-#include    "mapmakerigc.h"
+#include    "bucketIGC.h"
+#include    "mapmakerIGC.h"
+
+#include <boost/algorithm/string.hpp>
+
 static void DoDecrypt(int size, char* pdata)
 {
     DWORD encrypt = 0;
@@ -108,6 +111,7 @@ void    LoadIGCFile (FILE* file, ImissionIGC* pMission, void (*munge)(int size, 
 //moved from FedSrv.CPP and made data private on 7/28/08
 int CmissionIGC::TechBitFromToken(const char * szToken)
 {
+#ifdef WIN
   int itoken = 0;
   while (lstrcmpi(this->rgTechs[itoken], szToken))
   {
@@ -116,12 +120,33 @@ int CmissionIGC::TechBitFromToken(const char * szToken)
     itoken++;
   }
   return itoken;
+#else
+  int itoken = 0;
+  for( auto t : rgTechs )
+  {
+    if( t == std::string(szToken) )
+    {
+      return itoken;
+    }
+    ++itoken;
+  }
+  return NA;
+#endif
+}
+
+void TechFromString( TechTreeBitMask& ttbm, const std::string& str )
+{
+  throw "Not Implemented";
 }
 
 //moved from FedSrv.CPP and made data private on 7/28/08
 void CmissionIGC::TechsListToBits(const char * szTechs, TechTreeBitMask & ttbm)
 {
+#ifdef WIN
 	ttbm.ClearAll();
+#else
+  ttbm.reset();
+#endif
 	
 	if(strcmp(szTechs,"0") == 0) {
 		return;
@@ -129,10 +154,15 @@ void CmissionIGC::TechsListToBits(const char * szTechs, TechTreeBitMask & ttbm)
 
 	//Imago added hack for the bit array string stored in the binary IGC 8/1/08
 	if(isdigit(szTechs[0])) {
+#ifdef WIN
 		ttbm.FromString(szTechs);
+#else
+    TechFromString(ttbm,std::string(szTechs));
+#endif
 		return;
 	}
 
+#ifdef WIN
   char * token;
   token = strtok((char *) szTechs, " ");
   while(token)
@@ -140,6 +170,9 @@ void CmissionIGC::TechsListToBits(const char * szTechs, TechTreeBitMask & ttbm)
     ttbm.SetBit(TechBitFromToken(token));
     token = strtok(NULL, " ");
   }
+#else
+  throw "Not Implemented";
+#endif
 }
 
 //gets a single flag names part mask the hard way
@@ -148,6 +181,7 @@ PartMask CmissionIGC::PartMaskFromToken(const char * szToken, EquipmentType et)
 	if (isdigit(szToken[0]))
 		return atoi(szToken);
 
+#ifdef WIN
 	ZString strTemp = ZString(szToken);
 	strTemp.RemoveAll(' ');	
 
@@ -197,14 +231,114 @@ PartMask CmissionIGC::PartMaskFromToken(const char * szToken, EquipmentType et)
 		return c_pbm16;
 
 	return NA; // never happen
+#else
+  std::string strTemp(szToken);
+  boost::algorithm::trim(strTemp);
+  if( strTemp.empty() ) return 0;
+  int itoken = 0;
+  auto i = std::find_if( rgParts[et].begin(), rgParts[et].end(), [&] (std::string s) { if( s == strTemp ) { return true; } else { ++itoken; return false; } } );
+  if( i == rgParts[et].end() ) return NA;
+  return 1 << itoken;
+#endif
 }
+
+#ifndef WIN
+static std::map<std::string,HullAbilityBitMask> hullBitmaskStrings = { 
+  {"CanBoard",c_habmBoard},
+  {"CanRescue",c_habmRescue},
+  {"IsPod",c_habmRescue},
+  {"CanCapture",c_habmCaptureThreat},
+	{ "CanLandOnCarrier", c_habmLandOnCarrier},
+  { "CanNotRip", c_habmNoRipcord},
+  { "IsRipcordTarget",c_habmIsRipcordTarget},
+  { "IsFighter",c_habmFighter},
+  { "IsRemoteLeadIndicator",c_habmRemoteLeadIndicator},
+  { "CanBomb",c_habmThreatToStation},
+  { "IsCarrier",c_habmCarrier},
+  { "CanLeadIndicator",c_habmLeadIndicator},
+  { "IsLtRip",c_habmIsLtRipcordTarget},
+  { "CanLtRip",c_habmCanLtRipcord},
+  { "IsMiner",c_habmMiner},
+  { "IsBuilder",c_habmBuilder},
+};
+
+static std::map<std::string,StationAbilityBitMask> stationBitmaskStrings = {
+{ "CanBoard", c_habmBoard},
+{ "CanOffloadMinerals", c_sabmUnload},
+{ "CanStartHere", c_sabmStart},
+{ "CanRestartHere", c_sabmRestart},
+{ "CanRipHere", c_sabmRipcord},
+{ "CanBeCaptured", c_sabmCapture},
+{ "CanLandHere", c_sabmLand},
+{ "CanRepair", c_sabmRepair},
+{ "IsVisibleInLoadout", c_sabmRemoteLeadIndicator},
+{ "CanReload", c_sabmReload},
+{ "IsVictoryObjective", c_sabmFlag},
+{ "IsFlagPedestal", c_sabmPedestal},
+{ "CanTeleportOffloadMinerals", c_sabmTeleportUnload},
+{ "CanLandCapitols", c_sabmCapLand},
+{ "CanRescuePods", c_sabmRescue},
+{ "CanRescueAnyPods", c_sabmRescueAny},
+};
+
+static std::map<std::string,ExpendableAbilityBitMask> expendableBitmaskStrings = {
+{ "CanCaptureStations", c_eabmCapture},
+{ "CanWarpBombDual", c_eabmWarpBombDual},
+{ "CanWarpBombSingle", c_eabmWarpBombSingle},
+{ "CanQuickReady", c_eabmQuickReady},
+{ "CanWarn", c_eabmWarn},
+{ "CanShootStations", c_eabmShootStations},
+{ "CanShootShips", c_eabmShootShips},
+{ "CanShootMissiles", c_eabmShootMissiles},
+{ "CanShootTargetOnly", c_eabmShootOnlyTarget},
+{ "CanRescue", c_eabmRescue},
+{ "CanRescueAny", c_eabmRescueAny},
+};
+
+static std::map<std::string,AsteroidAbilityBitMask> asteroidBitmaskStrings = {
+{ "CanBeRegular", c_aabmBuildable},
+{ "CanBeUranium", (c_aabmSpecial << 0)},
+{ "CanBeSilicon", (c_aabmSpecial << 1)},
+{ "CanBeCarbon", (c_aabmSpecial << 2)},
+{ "CanBeHelium", c_aabmMineHe3},
+{ "CanBeDenseHelium", c_aabmMineLotsHe3},
+{ "CanBeGold", c_aabmMineGold},
+};
+
+template<class T> AbilityBitMask GetAbilities( const std::string& strAbilities, T abilityMap )
+{
+  AbilityBitMask bm;
+  
+  return bm;
+}
+#endif
 
 // flag name helper function, if any IGC.h ability mask changes, this must change as well.
 AbilityBitMask AbilitiesListToMask(const char * szAbilities, AbilityType at) {
 	ZString strCapabilities = ZString(szAbilities);
+#ifdef WIN
 	if (strCapabilities.IsEmpty())
 		return 0;
+#else
+  if( strCapabilities.empty() ) return 0;
+#endif
 
+#ifndef WIN
+
+  switch(at) {
+    case AT_Hull:
+      return GetAbilities( strCapabilities, hullBitmaskStrings );
+    case AT_Station:
+      return GetAbilities( strCapabilities, stationBitmaskStrings );
+    case AT_Expendable:
+      return GetAbilities( strCapabilities, expendableBitmaskStrings );
+    case AT_Asteroid:
+      return GetAbilities( strCapabilities, asteroidBitmaskStrings );
+    default:
+      throw "Invalid ability type";
+  }
+
+#else
 	switch(at) {
 		case AT_Hull: {
 			HullAbilityBitMask habm = 0;
@@ -347,7 +481,9 @@ AbilityBitMask AbilitiesListToMask(const char * szAbilities, AbilityType at) {
 		}
 		break;
 	}
-	return NA; // never happen
+#endif
+	
+  return NA; // never happen
 }
 
 
@@ -367,19 +503,31 @@ PartMask CmissionIGC::PartsListToMask(const char * szParts, EquipmentType et)
 	return pm;
 }
 
+std::string TechToString( const TechTreeBitMask& ttbm )
+{
+  throw "Not Implemented";
+}
+
 //looks up the flag names for a 'tech bit' from a zlib mask
 ZString CmissionIGC::BitsToTechsList(TechTreeBitMask & ttbm)
 {
 	ZString strList;
 
 	//use Zmask.ToString() if the new rgTechs isn't loaded
+#ifdef WIN
 	if(strcmp((PCC)GetTechFlagName(0),"unavailable") != 0) {
 		char  * pszTechs = new char[(c_ttbMax + 7) / 8 * 2 + 1];
 		ttbm.ToString(pszTechs,(c_ttbMax + 7) / 8 * 2 + 1);
 		pszTechs[100] = '\0';  //tidy
 		return ZString(pszTechs);
 	}
+#else
+  if( GetTechFlagName(0) != "unavailable" ) {
+    return TechToString(ttbm);
+  }
+#endif
 
+#ifdef WIN
 	for(int i=0;i<c_ttbMax;i++) {
 		if(ttbm.GetBit(i)) {
 			ZString strTemp = ZString(GetTechFlagName(i));
@@ -392,6 +540,23 @@ ZString CmissionIGC::BitsToTechsList(TechTreeBitMask & ttbm)
 			}
 		} 
 	}
+#else
+  std::vector<std::string> strArray;
+  for(int i=0; i < ttbm.size(); ++i )
+  {
+    std::string strTemp = GetTechFlagName(i);
+    if( !strTemp.empty() )
+    {
+      strArray.push_back(strTemp);
+    } else
+    {
+      throw "BitsToTechsList: got a nameless tech bit";
+    }
+  }
+  strList = boost::algorithm::join(strArray," ");
+#endif
+
+#ifdef WIN
 	if(strList.GetLength() < 3) {
 		if (!(ttbm.GetAllZero())) {
 			//use Zmask.ToString() for an empty mask name list that isn't supposed to be
@@ -403,9 +568,22 @@ ZString CmissionIGC::BitsToTechsList(TechTreeBitMask & ttbm)
 			return "0";
 		}
 	}
+#else
+  if(strList.size() < 3) {
+    return TechToString(ttbm);
+  } else
+  {
+    return "0";
+  }
+#endif
+
 	return strList;
 }
 
+std::string ToString( const PartMask& pm )
+{
+  throw "Not Implemented";
+}
 //looks up the flag names for an equipment type's 'part bit' from a part mask
 //this allows for named hull/weapon classes like the AZ database used.
 ZString CmissionIGC::BitsToPartsList(PartMask & pm, EquipmentType et)
@@ -413,10 +591,17 @@ ZString CmissionIGC::BitsToPartsList(PartMask & pm, EquipmentType et)
 	ZString strList;
 
 	//use short if the new rgParts isn't loaded
+#ifdef WIN
 	if(ZString(GetPartFlagName(0,et)).GetLength() < 3) {
 		return ZString(pm);
 	}
-	
+#else
+  if( GetPartFlagName(0,et).size() < 3 ) {
+    return ToString(pm);
+  }
+#endif
+
+#ifdef WIN	
 	//there is a better way...I beg you please to show me the way
 	#define ISSET(id) if(c_pbm##id & pm)\
 		strList += ZString(GetPartFlagName(id-1,et)) + " ";
@@ -439,14 +624,27 @@ ZString CmissionIGC::BitsToPartsList(PartMask & pm, EquipmentType et)
 		ISSET(16)
 
 	#undef ISSET
-		return (strList.GetLength() > 3) ? strList : ZString(pm);
+	return (strList.GetLength() > 3) ? strList : ZString(pm);
+#else
+  std::vector<std::string> strArray;
+  for( unsigned int i = 0; i != (1<<15); i <<= 1 )
+  {
+    if( (pm & i) != 0 ) strArray.push_back( GetPartFlagName(i,et) );
+  }
+  strList = boost::algorithm::join( strArray, " " );
+  return (strList.size() > 3 ) ? strList : ToString(pm);
+#endif
 }
 
 bool CmissionIGC::LoadTechBitsList() {
 	typedef std::vector< std::vector<std::string> > csvVector;
 	//Load Techbits
 	ZString strFile = ZString(UTL::artworkPath()) + ZString(this->GetMissionParams()->szIGCStaticFile) + "\\BitsOfTechs.csv";
+#ifdef WIN
 	std::fstream file0((PCC)strFile, std::ios::in);
+#else
+  std::fstream file0(strFile.c_str(),std::ios::in);
+#endif
 	if(file0.is_open()) {
 		csvVector csvData0;
 		readCSV(file0, csvData0);
@@ -482,7 +680,11 @@ bool CmissionIGC::LoadPartsBitsList() {
 	typedef std::vector< std::vector<std::string> > csvVector;
 	//Load Partbits
 	ZString strFile = ZString(UTL::artworkPath()) + ZString(this->GetMissionParams()->szIGCStaticFile) + "\\BitsOfParts.csv";
+#ifdef WIN
 	std::fstream file0((PCC)strFile, std::ios::in);
+#else
+  std::fstream file0(strFile.c_str(),std::ios::in);
+#endif
 	if(file0.is_open()) {
 		csvVector csvData0;
 		readCSV(file0, csvData0);
@@ -587,7 +789,11 @@ void CmissionIGC::ImportStaticIGCObjs() //is opposite of ExportStaticIGCObjs()
 
 	//Load Constants
 	ZString strFile = ZString(UTL::artworkPath()) + ZString(pMission->GetMissionParams()->szIGCStaticFile) + "\\Constants.csv";
+#ifdef WIN
 	std::fstream file((PCC)strFile, std::ios::in);
+#else
+  std::fstream file(strFile.c_str(),std::ios::in);
+#endif
 	assert(file.is_open());
 	csvVector csvData;
 	
@@ -634,7 +840,9 @@ void CmissionIGC::ImportStaticIGCObjs() //is opposite of ExportStaticIGCObjs()
 		}
 	}
 	file.close();
+#ifdef WIN
 	delete file;
+#endif
 
 	int size = sizeof(Constants);
 	*((ObjectType*)pData) = OT_constants;
@@ -643,14 +851,22 @@ void CmissionIGC::ImportStaticIGCObjs() //is opposite of ExportStaticIGCObjs()
 	memcpy(pData + sizeof(int) + sizeof(ObjectType), pConstants, iDatasize);
 
 	strFile = ZString(UTL::artworkPath()) + ZString(pMission->GetMissionParams()->szIGCStaticFile) + "\\Expendables.csv";
+#ifdef WIN
 	std::fstream file10((PCC)strFile, std::ios::in);
+#else
+  std::fstream file10(strFile.c_str(),std::ios::in);
+#endif
 	assert(file10.is_open());
 	csvVector csvData4;
 	readCSV(file10, csvData4);
 
 	// Load projectile types
 	strFile = ZString(UTL::artworkPath()) + ZString(pMission->GetMissionParams()->szIGCStaticFile) + "\\TypesOfProjectiles.csv";
+#ifdef WIN
 	std::fstream projfile((PCC)strFile, std::ios::in);
+#else
+  std::fstream projfile(strFile.c_str(),std::ios::in);
+#endif
 	assert(projfile.is_open());
 	csvData.clear();
 	readCSV(projfile, csvData);
@@ -679,7 +895,14 @@ void CmissionIGC::ImportStaticIGCObjs() //is opposite of ExportStaticIGCObjs()
 					if(colnum == 6)
 						pProj->lifespan = atof(sdata.c_str());
 					if(colnum == 7)
+#ifdef WIN
 						pProj->damageType = ZString(sdata.c_str()).GetToken().GetInteger();
+#else
+            {
+              std::istringstream iss(sdata);
+              iss >> pProj->damageType;
+            }
+#endif
 					if(colnum == 8)
 						pProj->absoluteF = atoi(sdata.c_str());
 					if(colnum == 9)
@@ -689,11 +912,18 @@ void CmissionIGC::ImportStaticIGCObjs() //is opposite of ExportStaticIGCObjs()
 					if(colnum == 11)
 						pProj->ambientSound = atoi(sdata.c_str());
 					if(colnum == 12) {
+#ifdef WIN
 						ZString strColor = ZString(sdata.c_str());
 						pProj->color.r = strColor.GetToken().GetInteger();
 						pProj->color.g = strColor.GetToken().GetInteger();
 						pProj->color.b = strColor.GetToken().GetInteger();
 						pProj->color.a = strColor.GetToken().GetInteger();
+#else
+            {
+              std::istringstream iss(sdata);
+              iss >> pProj->color.r >> pProj->color.g >> pProj->color.b >> pProj->color.a;
+            }
+#endif
 					}
 					if(colnum == 13)
 						pProj->radius = atof(sdata.c_str());
@@ -718,7 +948,11 @@ void CmissionIGC::ImportStaticIGCObjs() //is opposite of ExportStaticIGCObjs()
 
 	// Load missile expendable
 	strFile = ZString(UTL::artworkPath()) + ZString(pMission->GetMissionParams()->szIGCStaticFile) + "\\ExpendableMissiles.csv";
+#ifdef WIN
 	std::fstream file12((PCC)strFile, std::ios::in);
+#else
+  std::fstream file12(strFile.c_str(),std::ios::in);
+#endif
 	assert(file12.is_open());
 	csvData.clear();
 	readCSV(file12, csvData);
@@ -816,7 +1050,14 @@ void CmissionIGC::ImportStaticIGCObjs() //is opposite of ExportStaticIGCObjs()
 					if(colnum == 14)
 						pMissile->width = atof(sdata.c_str());
 					if(colnum == 15)
-						pMissile->damageType = ZString(sdata.c_str()).GetToken().GetInteger(); 
+#ifdef WIN
+						pMissile->damageType = ZString(sdata.c_str()).GetToken().GetInteger();
+#else
+            {
+              std::istringstream iss(sdata);
+              iss >> pMissile->damageType;
+            }
+#endif
 					if(colnum == 16)
 						pMissile->bDirectional = atoi(sdata.c_str());
 					if(colnum == 17)
@@ -832,17 +1073,31 @@ void CmissionIGC::ImportStaticIGCObjs() //is opposite of ExportStaticIGCObjs()
 					if(colnum == 22)
 						pMissile->hitPoints = atof(sdata.c_str());
 					if(colnum == 23)
+#ifdef WIN
 						pMissile->defenseType = ZString(sdata.c_str()).GetToken().GetInteger(); 
+#else
+            {
+              std::istringstream iss(sdata);
+              iss >> pMissile->defenseType;
+            }
+#endif
 					if(colnum == 24)
 						pMissile->eabmCapabilities = AbilitiesListToMask(sdata.c_str(),AT_Expendable);
 					if(colnum == 25)
 						Strcpy(pMissile->iconName,sdata.c_str());
 					if(colnum == 26) {
+#ifdef WIN
 						ZString strColor = ZString(sdata.c_str());
 						pMissile->color.r = strColor.GetToken().GetInteger();
 						pMissile->color.g = strColor.GetToken().GetInteger();
 						pMissile->color.b = strColor.GetToken().GetInteger();
 						pMissile->color.a = strColor.GetToken().GetInteger();
+#else
+            {
+              std::istringstream iss(sdata);
+              iss >> pMissile->color.r >> pMissile->color.g >> pMissile->color.b >> pMissile->color.a;
+            }
+#endif
 					}
 					if(colnum == 27)
 						pMissile->radius = atof(sdata.c_str());
@@ -878,7 +1133,11 @@ void CmissionIGC::ImportStaticIGCObjs() //is opposite of ExportStaticIGCObjs()
 
 	// Load probes expendable
 	strFile = ZString(UTL::artworkPath()) + ZString(pMission->GetMissionParams()->szIGCStaticFile) + "\\ExpendableProbes.csv";
+#ifdef WIN
 	std::fstream file18((PCC)strFile, std::ios::in);
+#else
+  std::fstream file18(strFile.c_str(),std::ios::in);
+#endif
 	assert(file18.is_open());
 	csvData.clear();
 	readCSV(file18, csvData);
@@ -971,18 +1230,32 @@ void CmissionIGC::ImportStaticIGCObjs() //is opposite of ExportStaticIGCObjs()
 					if(colnum == 13)
 						pProbe->hitPoints = atof(sdata.c_str());
 					if(colnum == 14)
+#ifdef WIN
 						pProbe->defenseType = ZString(sdata.c_str()).GetToken().GetInteger(); 
+#else
+            {
+              std::istringstream iss(sdata);
+              iss >> pProbe->defenseType;
+            }
+#endif
 					if(colnum == 15)
 						pProbe->eabmCapabilities = AbilitiesListToMask(sdata.c_str(),AT_Expendable);
 					if(colnum == 16)
 						Strcpy(pProbe->iconName,sdata.c_str());
 					if(colnum == 17) {
+#ifdef WIN
 						ZString strColor = ZString(sdata.c_str());
 						pProbe->color.r = strColor.GetToken().GetInteger();
 						pProbe->color.g = strColor.GetToken().GetInteger();
 						pProbe->color.b = strColor.GetToken().GetInteger();
 						pProbe->color.a = strColor.GetToken().GetInteger();
-					}
+#else
+            {
+              std::istringstream iss(sdata);
+              iss >> pProbe->color.r >> pProbe->color.g >> pProbe->color.b >> pProbe->color.a;
+            }
+#endif					
+          }
 					if(colnum == 18)
 						pProbe->radius = atof(sdata.c_str());
 					if(colnum == 19)
@@ -1013,7 +1286,7 @@ void CmissionIGC::ImportStaticIGCObjs() //is opposite of ExportStaticIGCObjs()
 			iLines++;
 		}
 	}
-
+#ifdef WIN
 	// Load chaff expendable
 	strFile = ZString(UTL::artworkPath()) + ZString(pMission->GetMissionParams()->szIGCStaticFile) + "\\ExpendableChaff.csv";
 	std::fstream file9((PCC)strFile, std::ios::in);
@@ -2300,7 +2573,9 @@ void CmissionIGC::ImportStaticIGCObjs() //is opposite of ExportStaticIGCObjs()
 			iLines++;
 		}
 	}
-
+#else
+//#pragma message("BUNCH OF STUFF LEFT OUT, WALL OF TEXT THAT IS BADLY WRITTEN")
+#endif
 
 	//the beast is now loaded up with IGC, initialize the objects
     pMission->Import (now, c_maskStaticTypes, pData, iDatasize);
@@ -2385,6 +2660,7 @@ int     LoadIGCStaticCore (const char* name, ImissionIGC* pMission, bool fGetVer
 {
     //See if we've already loaded the static core
     {
+#ifdef WIN
         for (CachedLink*    pcl = s_cores.first(); (pcl != NULL); pcl = pcl->next())
         {
             if (_stricmp(name, pcl->data().name) == 0)
@@ -2398,6 +2674,20 @@ int     LoadIGCStaticCore (const char* name, ImissionIGC* pMission, bool fGetVer
                 return pcl->data().version;
             }
         }
+#else
+        for( auto core : s_cores )
+        {
+          if( std::string(core.name) == std::string(name) )
+          {
+            if( !fGetVersionOnly )
+            {
+              pMission->SetStaticCore(core.pstatic);
+              ++core.consumers;
+            }
+            return core.version;
+          }
+        }
+#endif
     }
 
     char        szFilename[MAX_PATH + 1];
@@ -2414,7 +2704,7 @@ int     LoadIGCStaticCore (const char* name, ImissionIGC* pMission, bool fGetVer
             pMission->SetStaticCore(NULL);
 
             LoadIGCFile (file, pMission, munge);
-
+#ifdef WIN
             CachedLink* pcl = new CachedLink;
 
             pcl->data().pstatic = pMission->GetStaticCore();
@@ -2423,7 +2713,14 @@ int     LoadIGCStaticCore (const char* name, ImissionIGC* pMission, bool fGetVer
             pcl->data().consumers = 1;
 
             s_cores.last(pcl);
-
+#else
+            CachedStaticCore link;
+            link.pstatic = pMission->GetStaticCore();
+            strcpy(link.name, name);
+            link.version = iStaticCoreVersion;
+            link.consumers = 1;
+            s_cores.push_back(link);
+#endif
 
 #if 0
             {
@@ -2613,7 +2910,11 @@ int     LoadIGCStaticCore (const char* name, ImissionIGC* pMission, bool fGetVer
 		// Imago try to load a text-based core if no .igc is present 
 		ZString strName = ZString(name) + "\\Constants";
 		char        szFilename[MAX_PATH + 1];
+#ifdef WIN
 		HRESULT     hr = UTL::getFile(strName, ".csv", szFilename, true, true);
+#else
+    HRESULT hr = UTL::getFile(strName.c_str(),".csv",szFilename,true,true);
+#endif
 		if (hr == S_OK) {
             
             //NYI: Version
@@ -2633,13 +2934,21 @@ int     LoadIGCStaticCore (const char* name, ImissionIGC* pMission, bool fGetVer
                 
                 //Text2Core 
                 pMission->ImportStaticIGCObjs();
-
+#ifdef WIN
 				CachedLink* pcl = new CachedLink;
 				pcl->data().pstatic = pMission->GetStaticCore();
 				strcpy(pcl->data().name, name);
 				pcl->data().version = 1337;
 				pcl->data().consumers = 1;
 				s_cores.last(pcl);
+#else
+        CachedStaticCore core;
+        core.pstatic = pMission->GetStaticCore();
+        strcpy(core.name,name);
+        core.version = 1337;
+        core.consumers = 1;
+        s_cores.push_back(core);
+#endif
 			}
 			
 			return 1337; 
@@ -2994,6 +3303,7 @@ CmissionIGC::~CmissionIGC(void)
 {
     if (m_pStatic != NULL)
     {
+#ifdef WIN
         for (CachedLink*    pcl = s_cores.first(); (pcl != NULL); pcl = pcl->next())
         {
             if (m_pStatic == pcl->data().pstatic)
@@ -3007,12 +3317,32 @@ CmissionIGC::~CmissionIGC(void)
                 }
             }
         }
+#else
+        auto i = s_cores.begin();
+        for( ; i != s_cores.end(); ++i )
+        {
+          CachedStaticCore& core = *i; 
+          if( m_pStatic == core.pstatic )
+          {
+            --core.consumers;
+            if( core.consumers == 0 )
+            {
+              m_pStatic->Terminate();
+              delete m_pStatic;
+              break;
+            }
+          }
+        }
+        if( i != s_cores.end() ) s_cores.erase(i);
+#endif
     }
 }
 
 void CmissionIGC::Initialize(Time now, IIgcSite* pIgcSite)
 {
+#ifdef WIN
     debugf("Mission Initialize id=%d this=%x now=%d\n", GetMissionID(), this, now.clock());
+#endif
     m_pIgcSite = pIgcSite;
     m_lastUpdate = now;
 
@@ -3031,8 +3361,9 @@ void CmissionIGC::Initialize(Time now, IIgcSite* pIgcSite)
 
 void    CmissionIGC::Terminate(void)
 {
+#ifdef WIN
     debugf("Terminating mission id=%d, this=%x igccount=%x\n", GetMissionID(), this, GetIgcSite()->GetCount());
-  
+#endif 
     m_pIgcSite->TerminateMissionEvent(this);
 
     {
@@ -3040,27 +3371,48 @@ void    CmissionIGC::Terminate(void)
         //So do it before nuking the clusters since that would nuke the ships in the
         //cluster.
         ShipLinkIGC*  l;
+#ifdef WIN
         debugf("moving %x ships to NULL mission\n",m_ships.n());
         while ((l = m_ships.first()) != NULL)
         {
             l->data()->SetMission(NULL);
         }
+#else
+        for( auto s : m_ships )
+        {
+          s->SetMission(nullptr);
+        }
+#endif
     }
     {
+#ifdef WIN
         ClusterLinkIGC*  l;
         debugf("nuking %x clusters\n",m_clusters.n());
         while ((l = m_clusters.first()) != NULL)
         {
             l->data()->Terminate();
         }
+#else
+        while( !m_clusters.empty() )
+        {
+          m_clusters.front()->Terminate();
+        }
+#endif
     }
     {
+#ifdef WIN
         SideLinkIGC*  l;
         debugf("nuking %x sides\n",m_sides.n());
         while ((l = m_sides.first()) != NULL)
         {
             l->data()->Terminate();
         }
+#else
+        while( !m_sides.empty() )
+        {
+          m_sides.front()->Terminate();
+        }
+#endif
     }
     if (m_sideTeamLobby)
     {
@@ -3068,7 +3420,7 @@ void    CmissionIGC::Terminate(void)
         m_sideTeamLobby->Release();
         m_sideTeamLobby = NULL;
     };
-
+#ifdef WIN
     assert (m_clusters.n() == 0);
     assert (m_warps.n() == 0);
     assert (m_stations.n() == 0);
@@ -3076,6 +3428,7 @@ void    CmissionIGC::Terminate(void)
     assert (m_treasures.n() == 0);
     assert (m_ships.n() == 0);
     assert (m_sides.n() == 0);
+#endif
 }
 
 void     CmissionIGC::Update(Time now)
@@ -3089,18 +3442,26 @@ void     CmissionIGC::Update(Time now)
         {
             {
                 //Update the various sides
-                for (SideLinkIGC*   l = m_sides.first();
-                     (l != NULL);
-                     l = l->next())
+#ifdef WIN
+                for (SideLinkIGC*   l = m_sides.first(); (l != NULL); l = l->next())
                 {
                     l->data()->Update(now);
                 }
+#else
+                for( auto s : m_sides )
+                {
+                  s->Update(now);
+                }
+#endif
             }
 
             m_damageTracks.Update(now);
-
+#ifdef WIN
             assert (now - m_lastUpdate < 600.0f);   //never 10 minutes at a time.
             float   deltaT = now - m_lastUpdate;
+#else
+            float deltaT = (now - m_lastUpdate).count();
+#endif
 
             //Update the components in chunks of no more than 250ms each
             //if more than one chuck of time is required, evenly divide the
@@ -3114,18 +3475,26 @@ void     CmissionIGC::Update(Time now)
 
             for (int i = 1; (i <= n); i++)
             {
+#ifdef WIN
                 Time    timeUpdate = startTime + (deltaT * (((float)i) / ((float)n)));
-
+#else
+                Time    timeUpdate = startTime + Duration(deltaT * (((float)i) / ((float)n)));
+#endif
                 {
                     //Update all clusters (which update all the models in clusters, etc.)
                     //Clusters can never be deleted on an update, so this is safe.
-                    for (ClusterLinkIGC*  l = m_clusters.first();
-                         (l != NULL);
-                         l = l->next())
+#ifdef WIN
+                    for (ClusterLinkIGC*  l = m_clusters.first(); (l != NULL); l = l->next())
                     {
                         assert (l->data());
                         l->data()->Update(timeUpdate);
                     }
+#else
+                    for( auto ship : m_clusters )
+                    {
+                      ship->Update(timeUpdate);
+                    }
+#endif
                 }
 
                 m_lastUpdate = timeUpdate;
@@ -3145,17 +3514,24 @@ static int  ExportList(__int64              maskTypes,
     int offset = 0;
     int size = 0;
 
-    for (BaseLinkIGC*   pbl = plist->first();
-         (pbl != NULL);
-         pbl = pbl->next())
+#ifdef WIN
+    for (BaseLinkIGC*   pbl = plist->first(); (pbl != NULL); pbl = pbl->next())
     {
         ObjectType  type = pbl->data()->GetObjectType();
+#else
+    for( auto l : *(plist) )
+    {
+      ObjectType type = l->GetObjectType();
+#endif
         if (maskTypes & (__int64(1) << __int64(type)))
         {
             if (*ppdata)
             {
+#ifdef WIN
                 int sizeItem = pbl->data()->Export(*ppdata + sizeof(int) + sizeof(ObjectType));
-            
+#else
+                int sizeItem = l->Export(*ppdata + sizeof(int) + sizeof(ObjectType));
+#endif
                 *((ObjectType*)*ppdata) = type;
                 *((int*)(*ppdata + sizeof(ObjectType))) = sizeItem;
 
@@ -3163,7 +3539,13 @@ static int  ExportList(__int64              maskTypes,
                 size += sizeItem + sizeof(int) + sizeof(ObjectType);
             }
             else
+            {
+#ifdef WIN
                 size += pbl->data()->Export(NULL) + sizeof(int) + sizeof(ObjectType);
+#else
+                size += l->Export(NULL) + sizeof(int) + sizeof(ObjectType);
+#endif
+            }
         }
     }
 
@@ -3253,8 +3635,12 @@ void                CmissionIGC::Import(Time    now,
 IbaseIGC*           CmissionIGC::CreateObject(Time now, ObjectType objecttype,
                                               const void* data, int dataSize)
 {
+#ifdef WIN
     #define OBJECT(CLS)   case OT_##CLS## :\
                                 { pBase = new C##CLS##IGC; } break;
+#else
+    #define OBJECT(CLS) case OT_ ## CLS : { pBase = new C ## CLS ## IGC; } break;
+#endif
 
     IbaseIGC*   pBase;
 
@@ -3563,16 +3949,29 @@ void                        CmissionIGC::AddSide(IsideIGC*  s)
 {
     // if there is not a team lobby but the civs do exist, go ahead and 
     // create the team lobby.
+#ifdef WIN
     if (!m_sideTeamLobby && GetCivilizations()->first() && s->GetObjectID() != SIDE_TEAMLOBBY)
+#else
+    if (!m_sideTeamLobby && GetCivilizations()->front() && s->GetObjectID() != SIDE_TEAMLOBBY)
+#endif
     {
         //create the lobby side
         DataSideIGC sidedata;
         strcpy(sidedata.name, "Team Lobby");
+#ifdef WIN
         sidedata.civilizationID = GetCivilizations()->first()->data()->GetObjectID();
+#else
+        sidedata.civilizationID = GetCivilizations()->front()->GetObjectID();
+#endif
         sidedata.sideID = SIDE_TEAMLOBBY;
         sidedata.gasAttributes.Initialize();
+#ifdef WIN
         sidedata.ttbmDevelopmentTechs.ClearAll();
         sidedata.ttbmInitialTechs.ClearAll();
+#else
+        sidedata.ttbmDevelopmentTechs.reset();
+        sidedata.ttbmInitialTechs.reset();
+#endif
         sidedata.color = Color(1.0f, 1.0f, 1.0f);
         sidedata.conquest = 0;
         sidedata.territory = 0;
@@ -3580,8 +3979,11 @@ void                        CmissionIGC::AddSide(IsideIGC*  s)
             = sidedata.nBaseCaptures = sidedata.nFlags = sidedata.nArtifacts = 0;
         sidedata.squadID = NA;
 		sidedata.allies = NA; // #ALLY
-
+#ifdef WIN
         m_sideTeamLobby = (IsideIGC*)CreateObject(Time::Now(), OT_side, &sidedata, sizeof(sidedata));
+#else
+        m_sideTeamLobby = (IsideIGC*)CreateObject(Clock::now(), OT_side, &sidedata, sizeof(sidedata));
+#endif
         m_sideTeamLobby->SetActiveF(true);
         DeleteSide(m_sideTeamLobby); // make sure it does not appear in the normal side list
         ZAssert(m_sideTeamLobby != NULL);
@@ -3611,28 +4013,81 @@ const SideListIGC*          CmissionIGC::GetSides(void) const
 	//why dont i just get the cluster's scannerlist where this is all happening? which way is "faster"...
 void						CmissionIGC::GetSeenSides(ImodelIGC * pmodel, bool (&bseensides)[c_cSidesMax], ImodelIGC * poptionalmodel)
 {
-
-	for (ModelLinkIGC*  pml = pmodel->GetCluster()->GetModels()->first(); (pml != NULL); pml = pml->next()) {
-		ImodelIGC*  pmodelother = pml->data();
-		if ((pmodelother->GetObjectType() != OT_ship && pmodelother->GetObjectType() != OT_station  && pmodelother->GetObjectType() != OT_probe) || pmodel->GetObjectID() == pmodelother->GetObjectID())
-			continue;
-		for (SideLinkIGC* psl = GetSides()->first(); (psl != NULL); psl = psl->next()) {
-			if (pmodelother->GetSide()->GetObjectID() != psl->data()->GetObjectID() || psl->data()->GetObjectID() == pmodel->GetSide()->GetObjectID())
-				continue;
-			if (pmodelother->GetObjectType() == OT_ship)
-				if (((IshipIGC*)pmodelother)->InScannerRange(pmodel) && (!poptionalmodel || (poptionalmodel && poptionalmodel->SeenBySide(psl->data()))))
-					bseensides[psl->data()->GetObjectID()] = true;
-			if (pmodelother->GetObjectType() == OT_station)
-				if (((IstationIGC*)pmodelother)->InScannerRange(pmodel) && (!poptionalmodel || (poptionalmodel && poptionalmodel->SeenBySide(psl->data()))))
-					bseensides[psl->data()->GetObjectID()] = true;
-			if (pmodelother->GetObjectType() == OT_probe)
-				if (((IprobeIGC*)pmodelother)->InScannerRange(pmodel) && (!poptionalmodel || (poptionalmodel && poptionalmodel->SeenBySide(psl->data()))))
-					bseensides[psl->data()->GetObjectID()] = true;
-			if (bseensides[psl->data()->GetObjectID()])
-				break;
-		}
-	}
-}
+#ifdef WIN
+  for (ModelLinkIGC*  pml = pmodel->GetCluster()->GetModels()->first(); (pml != NULL); pml = pml->next()) {
+    ImodelIGC*  pmodelother = pml->data();
+#else
+    for( auto pmodelother : *(pmodel->GetCluster()->GetModels()) )
+    {
+#endif
+      if ((pmodelother->GetObjectType() != OT_ship && pmodelother->GetObjectType() != OT_station  && pmodelother->GetObjectType() != OT_probe) || pmodel->GetObjectID() == pmodelother->GetObjectID())
+        continue;
+#ifdef WIN
+      for (SideLinkIGC* psl = GetSides()->first(); (psl != NULL); psl = psl->next()) {
+        if (pmodelother->GetSide()->GetObjectID() != psl->data()->GetObjectID() || psl->data()->GetObjectID() == pmodel->GetSide()->GetObjectID())
+          continue;
+#else
+      for( auto side : *GetSides() )
+      {
+        if (pmodelother->GetSide()->GetObjectID() != side->GetObjectID() || side->GetObjectID() == pmodel->GetSide()->GetObjectID())
+          continue;
+#endif
+#ifdef WIN
+        if (pmodelother->GetObjectType() == OT_ship) 
+        {
+          if (((IshipIGC*)pmodelother)->InScannerRange(pmodel) && (!poptionalmodel || (poptionalmodel && poptionalmodel->SeenBySide(psl->data()))))
+          {
+            bseensides[psl->data()->GetObjectID()] = true;
+          }
+        }
+        if (pmodelother->GetObjectType() == OT_station)
+        {
+          if (((IstationIGC*)pmodelother)->InScannerRange(pmodel) && (!poptionalmodel || (poptionalmodel && poptionalmodel->SeenBySide(psl->data()))))
+          {
+            bseensides[psl->data()->GetObjectID()] = true;
+          }
+        }
+        if (pmodelother->GetObjectType() == OT_probe)
+        {
+          if (((IprobeIGC*)pmodelother)->InScannerRange(pmodel) && (!poptionalmodel || (poptionalmodel && poptionalmodel->SeenBySide(psl->data()))))
+          {
+            bseensides[psl->data()->GetObjectID()] = true;
+          }
+        }
+        if (bseensides[psl->data()->GetObjectID()])
+        {
+          break;
+        }
+#else
+        if (pmodelother->GetObjectType() == OT_ship) 
+        {
+          if (((IshipIGC*)pmodelother)->InScannerRange(pmodel) && (!poptionalmodel || (poptionalmodel && poptionalmodel->SeenBySide(side))))
+          {
+            bseensides[side->GetObjectID()] = true;
+          }
+        }
+        if (pmodelother->GetObjectType() == OT_station)
+        {
+          if (((IstationIGC*)pmodelother)->InScannerRange(pmodel) && (!poptionalmodel || (poptionalmodel && poptionalmodel->SeenBySide(side))))
+          {
+            bseensides[side->GetObjectID()] = true;
+          }
+        }
+        if (pmodelother->GetObjectType() == OT_probe)
+        {
+          if (((IprobeIGC*)pmodelother)->InScannerRange(pmodel) && (!poptionalmodel || (poptionalmodel && poptionalmodel->SeenBySide(side))))
+          {
+            bseensides[side->GetObjectID()] = true;
+          }
+        }
+        if (bseensides[side->GetObjectID()])
+        {
+          break;
+        } 
+#endif
+      }
+    }
+  }
 
 void                        CmissionIGC::AddCluster(IclusterIGC*    c)
 {
@@ -3699,9 +4154,13 @@ void                        CmissionIGC::UpdateSides(Time now,
                                   { 50.0f/255.0f, 140.0f/255.0f,  20.0f/255.0f}, //icky yellow
                                   {255.0f/255.0f, 145.0f/255.0f, 145.0f/255.0f}, //icky orange
                                   { 50.0f/255.0f, 200.0f/255.0f, 125.0f/255.0f}};//icky magenta
-
+#ifdef WIN
     for (sid = GetSides()->n(); sid < pmp->nTeams; sid++)
     {
+#else
+    for( sid = GetSides()->size(); sid < pmp->nTeams; ++sid )
+    {
+#endif
         IcivilizationIGC*   pcivilization = GetCivilization(pmp->rgCivID[sid]);
         assert (pcivilization);
 
@@ -3714,12 +4173,16 @@ void                        CmissionIGC::UpdateSides(Time now,
                          sideColors[sid][2]);
         memset(ds.name, 0x00, sizeof(ds.name));
         strcpy(ds.name, sideNames[sid]);
+#ifdef WIN
         ds.ttbmDevelopmentTechs.ClearAll();
         ds.ttbmInitialTechs.ClearAll();
+#else
+        ds.ttbmDevelopmentTechs.reset();
+        ds.ttbmInitialTechs.reset();
+#endif
         ds.conquest = 0;
         ds.territory = 0;
-        ds.nKills = ds.nEjections = ds.nDeaths = ds.nBaseKills = ds.nBaseCaptures = ds.nFlags 
-            = ds.nArtifacts = 0;
+        ds.nKills = ds.nEjections = ds.nDeaths = ds.nBaseKills = ds.nBaseCaptures = ds.nFlags = ds.nArtifacts = 0;
         ds.squadID = NA;
 
         IObject*    o = CreateObject(now,
@@ -3735,20 +4198,36 @@ void                        CmissionIGC::UpdateSides(Time now,
     // if it looks like we need to delete a few sides to match the mission parameters, do so.
     if (sid > pmp->nTeams)
     {
+#ifdef WIN
         for (SideID sid = GetSides()->n() - 1; sid >= pmp->nTeams; sid--)
         {
             IsideIGC* pside = GetSide(sid);
             assert(pside->GetShips()->n() == 0); // side should be empty
             pside->Terminate();
         }
+#else
+        for (SideID sid = GetSides()->size() - 1; sid >= pmp->nTeams; sid--)
+        {
+            IsideIGC* pside = GetSide(sid);
+            assert(pside->GetShips()->empty()); // side should be empty
+            pside->Terminate();
+        }
+#endif
     }
-
+#ifdef WIN
     assert (GetSides()->n() == pmp->nTeams);
+#else
+    assert (GetSides()->size() == pmp->nTeams);
+#endif
 }
 // #ALLY
 void		CmissionIGC::UpdateAllies(const char Allies[c_cSidesMax])
 {
+#ifdef WIN
 	for (SideID s = 0; s < GetSides()->n(); s++)
+#else
+	for (SideID s = 0; s < GetSides()->size(); s++)
+#endif
 	{
 		IsideIGC* pside = GetSide(s);
 		if (pside) // shouldnt happen but let's be cautious
@@ -3759,26 +4238,47 @@ void                    CmissionIGC::ResetMission()
 {
     {
         // move all of the ships to the null cluster
+#ifdef WIN
         for (ShipLinkIGC*  l = m_ships.first(); l != NULL; l = l->next())
         {
             l->data()->SetCluster(NULL);
             l->data()->SetFlag(NA);
         }
+#else
+        for (auto ship:m_ships)
+        {
+            ship->SetCluster(NULL);
+            ship->SetFlag(NA);
+        }
+#endif
     }
     {
         // nuke all clusters
+#ifdef WIN
         const ClusterListIGC*   plistClusters = GetClusters();
         ClusterLinkIGC*         plinkCluster;
         while (plinkCluster = plistClusters->first())  //Not ==
             plinkCluster->data()->Terminate();
+#else
+        while( !GetClusters()->empty() )
+        {
+          GetClusters()->front()->Terminate();
+        }
+#endif
     }    
 
     // reset all of the side techs
-    for (SideLinkIGC * plinkSides = GetSides()->first(); 
-        (plinkSides != NULL); plinkSides = plinkSides->next())
+#ifdef WIN
+    for (SideLinkIGC * plinkSides = GetSides()->first(); (plinkSides != NULL); plinkSides = plinkSides->next())
     {
         plinkSides->data()->DestroyBuckets();
     }
+#else
+    for (auto side : *GetSides())
+    {
+        side->DestroyBuckets();
+    }
+#endif
 }
 
 void                    CmissionIGC::GenerateMission(Time                   now,
@@ -3803,7 +4303,11 @@ void                    CmissionIGC::GenerateMission(Time                   now,
       ++m_nReplayCount;
 
       // Clear the context name, so that it re-generates
+#ifdef WIN
       m_strContextName.SetEmpty();
+#else
+      m_strContextName.clear();
+#endif
     }
     else
     {
@@ -3813,25 +4317,57 @@ void                    CmissionIGC::GenerateMission(Time                   now,
 
     //Create buckets for all of the sides in the game
     {
+#ifdef WIN
         unsigned char   pctConquest = (unsigned char)(100 / m_sides.n());
         for (SideLinkIGC*   psl = m_sides.first(); (psl != NULL); psl = psl->next())
         {
             IsideIGC*           pside = psl->data();
+#else
+        unsigned char   pctConquest = (unsigned char)(100 / m_sides.size());
+        for( auto pside : m_sides )
+        {
+#endif
             IcivilizationIGC*   pciv = pside->GetCivilization();
 
             TechTreeBitMask ttbmDefaultTechs;
             if (pmp->bAllowDevelopments)
             {
                 ttbmDefaultTechs = pciv->GetBaseTechs();
-
+#ifdef WIN
                 if (pmp->bAllowShipyardPath)
+                {
                     ttbmDefaultTechs.SetBit(c_ttbShipyardAllowed);
+                }
                 if (pmp->bAllowExpansionPath)
+                {
                     ttbmDefaultTechs.SetBit(c_ttbExpansionAllowed);
+                }
                 if (pmp->bAllowTacticalPath)
+                {
                     ttbmDefaultTechs.SetBit(c_ttbTacticalAllowed);
+                }
                 if (pmp->bAllowSupremacyPath)
+                {
                     ttbmDefaultTechs.SetBit(c_ttbSupremacyAllowed);
+                }
+#else
+                if (pmp->bAllowShipyardPath)
+                {
+                    ttbmDefaultTechs.set(c_ttbShipyardAllowed);
+                }
+                if (pmp->bAllowExpansionPath)
+                {
+                    ttbmDefaultTechs.set(c_ttbExpansionAllowed);
+                }
+                if (pmp->bAllowTacticalPath)
+                {
+                    ttbmDefaultTechs.set(c_ttbTacticalAllowed);
+                }
+                if (pmp->bAllowSupremacyPath)
+                {
+                    ttbmDefaultTechs.set(c_ttbSupremacyAllowed);
+                }
+#endif
             }
             else
                 ttbmDefaultTechs = pciv->GetNoDevTechs();
@@ -3839,8 +4375,11 @@ void                    CmissionIGC::GenerateMission(Time                   now,
             if (pttbmShouldOverride && pttbmOverrideValue)
             {
               int nID = pside->GetObjectID();
-              pside->SetDevelopmentTechs((pttbmShouldOverride[nID] & pttbmOverrideValue[nID]) | 
-                                          (ttbmDefaultTechs - pttbmShouldOverride[nID]));
+#ifdef WIN
+              pside->SetDevelopmentTechs((pttbmShouldOverride[nID] & pttbmOverrideValue[nID]) | (ttbmDefaultTechs - pttbmShouldOverride[nID]));
+#else
+              pside->SetDevelopmentTechs((pttbmShouldOverride[nID] & pttbmOverrideValue[nID]) | (ttbmDefaultTechs & ~pttbmShouldOverride[nID]));
+#endif
             }
             else
               pside->SetDevelopmentTechs(ttbmDefaultTechs);
@@ -3849,7 +4388,7 @@ void                    CmissionIGC::GenerateMission(Time                   now,
 
             pside->SetConquestPercent(pctConquest);
 
-            psl->data()->CreateBuckets();
+            pside->CreateBuckets();
         }
     }
 
@@ -3871,23 +4410,53 @@ void                    CmissionIGC::GenerateMission(Time                   now,
 		{
 			//Adjust the position of all alephs in all clusters
 			float   majorRadius = GetFloatConstant(c_fcidRadiusUniverse);
+#ifdef WIN
 			for (ClusterLinkIGC*    pcl = m_clusters.first(); (pcl != NULL); pcl = pcl->next())
 			{
 				IclusterIGC*    pcluster = pcl->data();
+#else
+      for( auto pcluster : m_clusters ) 
+      {
+#endif
 				const WarpListIGC*  pwarps = pcluster->GetWarps();
+#ifdef WIN
 				if (pwarps->n() != 0)
+#else
+        if( !pwarps->empty() )
+#endif
 				{
+#ifdef WIN
 					float   nWarps = (float)(pwarps->n());
+#else
+          float nWarps = (float)(pwarps->size());
+#endif
 					const int c_maxWarps = 10;
+#ifdef WIN
 					assert (pwarps->n() <= c_maxWarps);
+#else
+					assert (pwarps->size() <= c_maxWarps);
+#endif
+
 					float   offset[c_maxWarps] = {0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
 					float   displacement;
+#ifdef WIN
 					if (pwarps->n() > 1)
+#else
+          if( pwarps->size() > 1 )
+#endif
 					{
 						displacement =  sin(pi/nWarps) * 2.0f / 3.0f;
+#ifdef WIN
 						for (int index = 0; (index < pwarps->n()); index++)
+#else
+						for (int index = 0; (index < pwarps->size()); index++)
+#endif
 						{
+#ifdef WIN
 							int swap = randomInt(0, pwarps->n() - 1);
+#else
+							int swap = randomInt(0, pwarps->size() - 1);
+#endif
 							if (swap != index)
 							{
 								float   t = offset[index];
@@ -3897,14 +4466,20 @@ void                    CmissionIGC::GenerateMission(Time                   now,
 						}
 					}
 					else
+          {
 						displacement = 2.0f / 3.0f;
+          }
 					{
 						float   bias = random(0.0f, 2.0f * pi);
 						int     index = 0;
-
+#ifdef WIN
 						for (WarpLinkIGC*   pwl = pwarps->first(); (pwl != NULL); pwl = pwl->next())
 						{
 							IwarpIGC*   pwarp = pwl->data();
+#else
+            for( auto pwarp : *pwarps )
+            {
+#endif
 							//float       r = pwarp->GetPosition().z * majorRadius;
 							float       r = 0.6f * majorRadius;
 							float       angle = bias + offset[index++] * (2.0f * pi) / nWarps;
@@ -3932,11 +4507,20 @@ void                    CmissionIGC::GenerateMission(Time                   now,
         float   amountHe3;
         {
             float   nHe3 = 0.0f;
+#ifdef WIN
             for (ClusterLinkIGC* pcl = m_clusters.first(); (pcl != NULL); pcl = pcl->next())
             {
                 IclusterIGC*            pcluster = pcl->data();
+#else
+            for( auto pcluster : m_clusters )
+            {
+#endif
                 const AsteroidListIGC*  pasteroids = pcluster->GetAsteroids();
+#ifdef WIN
                 if (pasteroids->n() == 0)
+#else
+                if( pasteroids->empty() )
+#endif
                 {
                     nHe3 += float(pcluster->GetHomeSector()
                                   ? pmp->nPlayerSectorMineableAsteroids
@@ -3944,11 +4528,19 @@ void                    CmissionIGC::GenerateMission(Time                   now,
                 }
                 else
                 {
+#ifdef WIN
                     for (AsteroidLinkIGC*   pal = pasteroids->first(); (pal != NULL); pal = pal->next())
                     {
                         if (pal->data()->GetCapabilities() & c_aabmMineHe3)
                             nHe3 += 1.0f;
                     }
+#else
+                    for( auto a : *pasteroids )
+                    {
+                        if (a->GetCapabilities() & c_aabmMineHe3)
+                            nHe3 += 1.0f;
+                    }
+#endif
                 }
             }
 
@@ -3958,23 +4550,36 @@ void                    CmissionIGC::GenerateMission(Time                   now,
             {
                 amountHe3 = GetFloatConstant(c_fcidAmountHe3) *
                             pmp->fHe3Density *
+#ifdef WIN
                             float(m_sides.n()) / nHe3;
+#else
+                            float(m_sides.size()) / nHe3;
+#endif
             }
         }
 
         const StationTypeListIGC*   pstationtypes = GetStationTypes();
+#ifdef WIN
         for (ClusterLinkIGC* pcl = m_clusters.first(); (pcl != NULL); pcl = pcl->next())
         {
             IclusterIGC*    pcluster = pcl->data();
-
+#else
+        for( auto pcluster : m_clusters )
+        {
+#endif
             {
                 //Replace stations with ones they actually can get
                 //Walk the list backwards because changing a station moves it to the end of the list.
+#ifdef WIN
                 StationLinkIGC*   psl = pcluster->GetStations()->last();
                 while (psl != NULL)
                 {
                     IstationIGC*            pstation = psl->data();
                     psl = psl->txen();
+#else
+                for( auto pstation : *(pcluster->GetStations()) )
+                {
+#endif
 
                     IsideIGC*               pside = pstation->GetSide();
                     IstationTypeIGC*        pst = pstation->GetBaseStationType();
@@ -3985,9 +4590,14 @@ void                    CmissionIGC::GenerateMission(Time                   now,
                     {
                         StationClassID classID = pst->GetClassID();
 
+#ifdef WIN
                         for (StationTypeLinkIGC*    pstl = pstationtypes->first(); (pstl != NULL); pstl = pstl->next())
                         {
                             IstationTypeIGC*    pstPossible = pstl->data();
+#else
+                        for( auto pstPossible : *pstationtypes )
+                        {
+#endif
                             if ((pstPossible->GetClassID() == classID) &&
                                 (pstPossible->GetRequiredTechs() <= ttbm))
                             {
@@ -4001,26 +4611,42 @@ void                    CmissionIGC::GenerateMission(Time                   now,
 
             PopulateCluster(this, pmp, pcluster,
                             amountHe3,
+#ifdef WIN
                             (pcluster->GetAsteroids()->n() == 0),
                             (pcluster->GetTreasures()->n() == 0));
+#else
+                            (pcluster->GetAsteroids()->empty()),
+                            (pcluster->GetTreasures()->empty()));
+#endif
 
             pcluster->SetActive(true);
         }
 
         if (pmp->bShowMap) 
         {
+#ifdef WIN
             for (WarpLinkIGC * pwl = m_warps.first();
                 (pwl != NULL);
                 pwl = pwl->next())
             {
                 IwarpIGC*   pwarp = pwl->data();
-
+#else
+            for( auto pwarp : m_warps )
+            {
+#endif
+#ifdef WIN
                 for (SideLinkIGC * psl = m_sides.first();
                     (psl != NULL);
                     psl = psl->next())
                 {
                     pwarp->SetSideVisibility(psl->data(), true);
                 }
+#else
+                for( auto side : m_sides )
+                {
+                  pwarp->SetSideVisibility(side,true);
+                }
+#endif
             }
         }
     }
@@ -4030,16 +4656,25 @@ void                    CmissionIGC::GenerateMission(Time                   now,
     {
         assert (c_cSidesMax == 6);
         unsigned char nTerritoriesPerSide[c_cSidesMax] = {0, 0, 0, 0, 0, 0};
-
+#ifdef WIN
         for (ClusterLinkIGC*    pcl = m_clusters.first(); (pcl != NULL); pcl = pcl->next())
         {
             IclusterIGC*    pcluster = pcl->data();
-
+#else
+        for( auto pcluster : m_clusters )
+        {
+#endif
             IsideIGC*       psideOwner = NULL;
             StationLinkIGC*    psl;
+#ifdef WIN
             for (psl = pcluster->GetStations()->first(); (psl != NULL); psl = psl->next())
             {
                 IsideIGC*   pside = psl->data()->GetSide();
+#else
+            for( auto station : *(pcluster->GetStations()) )
+            {
+              IsideIGC* pside = station->GetSide();
+#endif
                 if (psideOwner == NULL)
                     psideOwner = pside;
                 else if (psideOwner != pside)
@@ -4050,8 +4685,15 @@ void                    CmissionIGC::GenerateMission(Time                   now,
                 nTerritoriesPerSide[psideOwner->GetObjectID()]++;
         }
 
+#ifdef WIN
         for (SideLinkIGC*   psl = m_sides.first(); (psl != NULL); psl = psl->next())
             psl->data()->SetTerritoryCount(nTerritoriesPerSide[psl->data()->GetObjectID()]);
+#else
+        for( auto side : m_sides )
+        {
+          side->SetTerritoryCount(nTerritoriesPerSide[side->GetObjectID()]);
+        }
+#endif
     }
 	// mmf log mission params server side via debugf's
 	// may want to revisit this and make it a member function
@@ -4123,9 +4765,14 @@ void    CmissionIGC::GenerateTreasure(Time         now,
                 dt.p0.z *= c_zLensMultiplier;
 
                 //Verify that it is not close to any other model in the cluster
+#ifdef WIN
                 for (pmlink = models->first(); (pmlink != NULL); pmlink = pmlink->next())
                 {
                     ImodelIGC*  pm = pmlink->data();
+#else
+                for( auto pm : *models )
+                {
+#endif
                     float       r = (pm->GetObjectType() == OT_ship         //Never create a treasure starting within 500*sqrt(10) of a player
                                      ? 500.0f
                                      : 25.0f) + pm->GetRadius();
@@ -4167,18 +4814,42 @@ short                   CmissionIGC::GetReplayCount(void) const
    return m_nReplayCount;
 }
 
+#ifndef WIN
+std::string random_string( size_t length )
+{
+    auto randchar = []() -> char
+    {
+        const char charset[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+        const size_t max_index = (sizeof(charset) - 1);
+        return charset[ rand() % max_index ];
+    };
+    std::string str(length,0);
+    std::generate_n( str.begin(), length, randchar );
+    return str;
+}
+#endif
 
 const char*             CmissionIGC::GetContextName(void)
 {
   // Return if it has already been generated
+#ifdef WIN
   if (!m_strContextName.IsEmpty())
      return m_strContextName;
+#else
+  if( !m_strContextName.empty() ) return m_strContextName.c_str();
+#endif
 
   // Get the mission creation time
+#ifdef WIN
   SYSTEMTIME st;
   ZSucceeded(::FileTimeToSystemTime(&m_ftCreated, &st));
+#endif
 
   // Format the context string
+#ifdef WIN
   char szContext[24];
   sprintf(szContext, "%c%02d%02d%02d%02d%02d%04d%02d",
       (GetMissionParams()->bObjectModelCreated && GetMissionParams()->bClubGame) ? 'Z' : 'U',
@@ -4186,9 +4857,12 @@ const char*             CmissionIGC::GetContextName(void)
 
   // Save the context string for next time
   m_strContextName = szContext;
+#else
+  m_strContextName = random_string(24);
+#endif
 
   // Return the string (becomes invalid when m_strContextName changes)
-  return m_strContextName;
+  return m_strContextName.c_str();
 }
 
 //Imago NYI: TypesOfDamage.csv  - Core devs want to define the defense/damage, new OT_damageType:
@@ -4253,6 +4927,7 @@ ZString ConstantsDamageComment(int defenseid, int damageid) {
 }
 
 // Imago dump IGC data to text
+#ifdef WIN
 void Obj2Txt(IbaseIGC * pIGC, ObjectType ot, ImissionIGC * pMission)
 {
 	ZString strCore = ZString(pMission->GetMissionParams()->szIGCStaticFile);
@@ -5265,6 +5940,7 @@ void Obj2Txt(IbaseIGC * pIGC, ObjectType ot, ImissionIGC * pMission)
 		default: debugf("Obj2Txt: unhandled object type %i\n",ot);
 	}
 }
+#endif
 
 //...these meanings shouldn't change
 ZString ConstantsGlobalComment(int constid) {
@@ -5316,6 +5992,7 @@ ZString ConstantsGlobalComment(int constid) {
 	return strComment;
 }
 
+#ifdef WIN
 /*-------------------------------------------------------------------------
  * ExportStaticIGCObjs
  *-------------------------------------------------------------------------
@@ -5360,7 +6037,12 @@ void CmissionIGC::ExportStaticIGCObjs()
 	ZString strLine = "GLOBALID OR DEFENSE CONSTANTIDS\tGLOBAL VALUE OR DAMAGE CONSTANTID\tCOMMENT\r\n";
 	ZString strFile = ZString(pMission->GetMissionParams()->szIGCStaticFile) + "\\Constants"; 
 	char        szFilename[MAX_PATH + 1];
+#ifdef WIN
 	HRESULT     hr = UTL::getFile((PCC)strFile, ".csv", szFilename, true, true);
+#else
+	HRESULT     hr = UTL::getFile(strFile.c_str(), ".csv", szFilename, true, true);
+#endif
+
 	FILE*       file = fopen (szFilename, "wb");
 	fwrite (strLine, sizeof(char), strLine.GetLength(), file);
 
@@ -5658,3 +6340,4 @@ void CmissionIGC::ExportStaticIGCObjs()
   }
   
 }
+#endif

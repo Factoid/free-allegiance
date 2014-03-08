@@ -86,7 +86,11 @@ HRESULT CprojectileIGC::Initialize(ImissionIGC* pMission, Time now, const void* 
                 //lifespan == 0 => immortal projectile that can hit until it gets terminated on the next update; this is bad
                 assert (dataProjectile->lifespan > 0.0f);
                 ht->SetTimeStart(now);
+#ifdef WIN
                 ht->SetTimeStop(m_timeExpire = now + dataProjectile->lifespan); //intentional assignment
+#else
+                ht->SetTimeStop(m_timeExpire = now + Duration(dataProjectile->lifespan)); //intentional assignment
+#endif
                 assert (m_timeExpire != now);
             }
 
@@ -135,7 +139,12 @@ void    CprojectileIGC::Update(Time now)
                                                                  c_etProjectile,
                                                                  m_timeExpire,
                                                                  GetPosition() +
+#ifdef WIN
                                                                  GetVelocity() * (m_timeExpire - GetMyLastUpdate()),
+#else
+                                                                 GetVelocity() * (m_timeExpire - GetMyLastUpdate()).count(),
+#endif
+
                                                                  m_launcher);
             }
         }

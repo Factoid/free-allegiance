@@ -396,7 +396,7 @@ void        CclusterIGC::Update(Time now)
                     s->ApplyMineDamage();
                 }
 #else
-                for( ShipLinkIGC::const_reverse_iterator si = m_ships.rbegin(); si != m_ships.rend(); ++si )
+                for( auto si = m_ships.rbegin(); si != m_ships.rend(); ++si )
                 {
                   (*si)->ApplyMineDamage();
                 }

@@ -174,11 +174,18 @@ class       CstationIGC : public TmodelIGC<IstationIGC>
         {
             AddRef();
             {
+#ifdef WIN
                 //Force all of the ships docked at the station to undock
                 //NYI terminate all of the ships docked at the station?
                 ShipLinkIGC*    l;
                 while (l = m_shipsDocked.first())   //intentional assignment
                     l->data()->SetStation(NULL);
+#else
+                for( auto ship : m_shipsDocked )
+                {
+                  ship->SetStation(nullptr);
+                }
+#endif
             }
 
             GetMyMission()->DeleteStation(this);
@@ -189,7 +196,11 @@ class       CstationIGC : public TmodelIGC<IstationIGC>
         }
         virtual void    Update(Time now)
         {
+#ifdef WIN
             float   dt = now - GetMyLastUpdate();
+#else
+            float   dt = (now - GetMyLastUpdate()).count();
+#endif
 
             if (dt > 0.0f)
             {
@@ -450,9 +461,14 @@ class       CstationIGC : public TmodelIGC<IstationIGC>
         {
             //Walk through the predecessor parts until one is found that can be bought
             //We need to make only a single pass because sucessors always precede their predecessors
+#ifdef WIN
             for (PartTypeLinkIGC*   pptl = GetMission()->GetPartTypes()->first(); (pptl != NULL); pptl = pptl->next())
             {
                 IpartTypeIGC*   pptTry = pptl->data();
+#else
+            for( auto pptTry : *(GetMission()->GetPartTypes()) )
+            {
+#endif
                 if (pptTry->GetSuccessorPartType() == ppt)
                 {
                     if (CanBuy(pptTry))
