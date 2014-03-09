@@ -2,6 +2,7 @@ test.json
 core
 test2.json
 *.o
+*.d
 *.so
 *.obj
 *.png
