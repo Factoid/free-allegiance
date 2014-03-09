@@ -1,3 +1,6 @@
 [submodule "cereal"]
 	path = cereal
 	url = ./deps/cereal
+[submodule "alleg_src"]
+	path = alleg_src
+	url = ./deps/alleg_src/
