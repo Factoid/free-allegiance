@@ -1,6 +1,7 @@
-test.json
+*.igc
+*.json
+*.csv
 core
-test2.json
 *.o
 *.d
 *.so
@@ -9,9 +10,12 @@ test2.json
 fa
 mdlviewer
 *.a
+*.pyc
 *.swp
 .deps/
 Artwork/
-tools/decompiled/
+decompiled/
 deps/cereal
-tools/failures.txt
+failures.txt
+__pycache__
+coredump/cc_14/
