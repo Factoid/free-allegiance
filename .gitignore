@@ -18,4 +18,4 @@ decompiled/
 deps/cereal
 failures.txt
 __pycache__
-coredump/cc_14/
+tools/coredump/cc_14
