@@ -47,7 +47,6 @@ class CSVWriter:
         self.writeChaff()
         self.writeTech()
         self.writeTreasure()
-        self.writeCivs()
         self.writeChaffTable()
 
     def writeData( self, path, data, attribs = None, ignore = [] ):
@@ -173,9 +172,6 @@ class CSVWriter:
 
     def writeTreasure( self ):
         self.writeData( "treasure_set.csv", self.reader.treasureset )
-
-    def writeCivs( self ):
-      self.writeData( "civs.csv", self.reader.civs )
 
 for fileName in os.listdir( "." ):
     if( fileName[-4:] == ".igc" ):
