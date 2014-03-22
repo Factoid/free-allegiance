@@ -8,7 +8,7 @@ core
 *.obj
 *.png
 fa
-mdlviewer
+/mdlviewer
 *.a
 *.pyc
 *.swp
