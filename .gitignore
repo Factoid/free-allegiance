@@ -9,6 +9,7 @@ core
 *.png
 fa
 /mdlviewer
+/client
 *.a
 *.pyc
 *.swp

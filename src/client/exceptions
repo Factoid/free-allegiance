@@ -1,0 +1,11 @@
+#ifndef __EXCEPTIONS__
+#define __EXCEPTIONS__
+
+#include <exception>
+
+namespace fa
+{
+	class NotImplementedException : public std::exception {};
+}
+
+#endif
