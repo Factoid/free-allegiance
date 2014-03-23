@@ -4,10 +4,16 @@ PC_LIBS=$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs openscenegr
 CC=g++
 CFLAGS=-std=gnu++11 -ggdb3 -O0 -fno-inline-small-functions -fmax-errors=10 -fPIC -Wall -Wno-unused-function
 
+sources = $(wildcard *.cpp)
+objects = $(sources:.cpp=.o)
+
 all: client
 
-client: client.cpp ../../deps/alleg_src/igc/libigc.so
-	$(CC) $(CFLAGS) $(DEP_INCLUDE) -L../../deps/alleg_src/igc/ $< -o $@ -ligc $(PC_LIBS)
+client: $(objects)
+	$(CC) $(CFLAGS) $(DEP_INCLUDE) -L../../deps/alleg_src/igc/ $^ -o $@ -ligc $(PC_LIBS)
+
+%.o: %.cpp
+	$(CC) $(CFLAGS) $(DEP_INCLUDE) -c $< -o $@
 
 install: client
 	cp client ../../

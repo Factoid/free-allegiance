@@ -6,7 +6,6 @@
 
 namespace fa
 {
-
   class ClientIgcSite : public IIgcSite
   {
     virtual Time ServerTimeFromClientTime(Time   timeClient)
@@ -35,30 +34,20 @@ namespace fa
     void BucketChangeEvent(BucketChange bc, IbucketIGC* b) {
       throw NotImplementedException();
     }
-    void SideBuildingTechChange(IsideIGC* s) {
-      throw NotImplementedException();
-    }
-    void SideDevelopmentTechChange(IsideIGC* s) {
-      throw NotImplementedException();
-    }
+    void SideBuildingTechChange(IsideIGC* s);
+    void SideDevelopmentTechChange(IsideIGC* s);
     void SideGlobalAttributeChange(IsideIGC* s) {
       throw NotImplementedException();
     }
-    void StationTypeChange(IstationIGC* s) {
-      throw NotImplementedException();
-    }
+    void StationTypeChange(IstationIGC* s);
     void ClusterUpdateEvent(IclusterIGC* c) {
       throw NotImplementedException();
     }
     void BuildStation(IasteroidIGC* pasteroid, IsideIGC* pside, IstationTypeIGC* pstationtype, Time now, bool pbseensides[]) { //Imago #120 #121 8/10
       throw NotImplementedException();
     }
-    TRef<ThingSite> CreateThingSite(ImodelIGC* pModel) {
-      throw NotImplementedException();
-    }
-    TRef<ClusterSite> CreateClusterSite(IclusterIGC* pCluster) {
-      throw NotImplementedException();
-    }
+    TRef<ThingSite> CreateThingSite(ImodelIGC* pModel);
+    TRef<ClusterSite> CreateClusterSite(IclusterIGC* pCluster);
     void ReceiveChat(IshipIGC* pshipSender, ChatTarget ctRecipient, ObjectID oidRecipient, SoundID voiceOver, const char* szText, CommandID cid, ObjectType otTarget, ObjectID oidTarget, ImodelIGC* pmodelTarget = NULL) {
       throw NotImplementedException();
     }
@@ -199,9 +188,7 @@ namespace fa
     void *GetDroneFromShip(IshipIGC * pship){ // return value is really a Drone*
       throw NotImplementedException();
     }
-    void CreateSideEvent(IsideIGC * pIsideIGC) {
-      throw NotImplementedException();
-    }
+    void CreateSideEvent(IsideIGC * pIsideIGC);
     void DestroySideEvent(IsideIGC * pIsideIGC) {
       throw NotImplementedException();
     }
@@ -214,9 +201,7 @@ namespace fa
     void CommandChangedEvent(Command i, IshipIGC * pship, ImodelIGC* ptarget, CommandID cid) {
       throw NotImplementedException();
     }
-    void Preload(const char* pszModelName, const char* pszFileName) {
-      throw NotImplementedException();
-    }
+    void Preload(const char* pszModelName, const char* pszFileName);
     void ActivateTeleportProbe(IprobeIGC* pprobe) {
       throw NotImplementedException();
     }
@@ -226,9 +211,7 @@ namespace fa
     void LoadoutChangeEvent(IshipIGC* pship, IpartIGC* ppart, LoadoutChange lc) {
       throw NotImplementedException();
     }
-    IObject* LoadRadarIcon(const char* szName) {
-      throw NotImplementedException();
-    }
+    IObject* LoadRadarIcon(const char* szName);
     void ChangeGameState(void) {
       throw NotImplementedException();
     }
