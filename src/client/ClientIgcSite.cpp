@@ -1,14 +1,15 @@
 #include <igc/pch.h>
 #include "ClientIgcSite"
 #include <iostream>
+#include "model/ModelDefinition"
+
+std::ostream& operator<< (std::ostream& os, const Color& c)
+{
+  return os << c.R() << ", " << c.G() << ", " << c.B() << ", " << c.A();
+}
 
 namespace fa
 {
-  std::ostream& operator<< (std::ostream& os, const Color& c)
-  {
-    return os << c.R() << ", " << c.G() << ", " << c.B() << ", " << c.A();
-  }
-
   std::ostream& operator<< (std::ostream& os, const TechTreeBitMask& bm )
   {
     for( unsigned long int i = 0; i < 400; ++i )
@@ -26,13 +27,15 @@ namespace fa
 		if( modelName != nullptr )
 		{
 		  std::string model( modelName );
-			std::cout << "Preload model : " << model << "\n";
+//			std::cout << "Preload model : " << model << "\n";
+      modelManager.load( modelName );
 		}
 
 		if( textureName != nullptr )
 		{
 		  std::string texture( textureName );
 			std::cout << "Preload texture : " << texture << "\n";
+      textureManager.load( textureName );
 		}
 	}
 

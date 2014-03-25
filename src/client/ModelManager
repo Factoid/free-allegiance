@@ -1,0 +1,26 @@
+#ifndef __MODEL_MANAGER__
+#define __MODEL_MANAGER__
+
+#include <string>
+#include <osg/Group>
+
+namespace fa
+{
+
+  class ModelManager
+  {
+    public:
+      void load( const std::string& str );
+
+    private:
+      std::map<std::string,osg::ref_ptr<osg::Group>> models;
+  };
+
+  class TextureManager
+  {
+    public:
+      void load( const std::string& str );
+  };
+
+}
+#endif

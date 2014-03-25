@@ -1,0 +1,29 @@
+#ifndef __RESOURCE_BASE_H__
+#define __RESOURCE_BASE_H__
+
+#include <string>
+#include <cereal/archives/json.hpp>
+
+namespace fa
+{
+  class ResourceBase
+  {
+  public:
+    ResourceBase( const std::string& path );
+    ResourceBase();
+    virtual ~ResourceBase();
+
+    static void setResourceBase( const std::string& b );
+    
+    template <class Archive> void serialize( Archive& ar )
+    {
+      ar( CEREAL_NVP(resourcePath) );
+    }
+
+  protected:
+    static std::string resourceBase;
+    std::string resourcePath;
+  };
+}
+
+#endif

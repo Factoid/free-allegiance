@@ -1,0 +1,19 @@
+#ifndef __GEO_H__
+#define __GEO_H__
+
+#include <osg/Node>
+#include <cereal/archives/json.hpp>
+
+namespace fa
+{
+  class Geo
+  {
+  public:
+    Geo();
+    virtual ~Geo();
+    virtual osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node );
+    template <class Archive> void serialize( Archive& ar ) {}
+  };
+}
+
+#endif

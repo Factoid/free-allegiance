@@ -1,0 +1,29 @@
+#ifndef __GROUP_GEO_H__
+#define __GROUP_GEO_H__
+
+#include "Geo"
+#include <memory>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/vector.hpp>
+
+namespace fa
+{
+  class GroupGeo : public Geo
+  {
+  private:
+    std::vector< std::unique_ptr<Geo> > geo_list;
+   
+  public:
+    GroupGeo();
+    osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> root);
+    void add( Geo* geo );
+    
+    template <class Archive> void serialize( Archive& ar )
+    {
+      ar( CEREAL_NVP(geo_list) );
+    }
+  };
+}
+
+#endif

@@ -1,0 +1,31 @@
+#ifndef __COLOR_H__
+#define __COLOR_H__
+
+#include <osg/Vec4>
+#include <cereal/archives/json.hpp>
+
+namespace fa
+{
+  class Color
+  {
+  private:
+    float r,g,b,a;
+  public:
+    Color();
+    Color( float r, float g, float b, float a = 1.0f );
+    osg::Vec4 toVec4() const; 
+
+    template <class Archive> void serialize( Archive& ar )
+    {
+#if TRACE
+      std::cout << "Archiving Color\n";
+#endif
+      ar( CEREAL_NVP(r) );
+      ar( CEREAL_NVP(g) );
+      ar( CEREAL_NVP(b) );
+      ar( CEREAL_NVP(a) );
+    }
+  };
+}
+
+#endif

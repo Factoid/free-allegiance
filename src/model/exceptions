@@ -1,0 +1,18 @@
+#ifndef __EXCEPTIONS_H__
+#define __EXCEPTIONS_H__
+
+#include <string>
+
+namespace fa
+{
+  class ResourceNotFound : public std::exception {
+    public:
+    ResourceNotFound( const std::string& path ) : path(path) {}
+    const char* what() { ("Path Not found : " + path).c_str(); }
+
+    private:
+    std::string path;
+  };
+}
+
+#endif

@@ -1,0 +1,53 @@
+#ifndef __MODEL_DEFINITION_H__
+#define __MODEL_DEFINITION_H__
+
+#include "Frame"
+#include "Geo"
+#include "Light"
+#include <osg/Node>
+#include <string>
+#include <vector>
+#include <memory>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/polymorphic.hpp>
+
+namespace fa
+{
+  class ModelDefinition
+  {
+  public:
+    float frame;
+    std::vector<Frame> frames;
+    std::unique_ptr<Geo> object;
+    std::vector<Light> lights;
+
+  public:
+    ModelDefinition();
+    void buildGraph( osg::ref_ptr<osg::Node> root );
+    template <class Archive> void serialize( Archive& ar )
+    {
+      try
+      {
+        ar( CEREAL_NVP(frame) );
+      } catch(...) {}
+      try
+      {
+        ar( CEREAL_NVP(frames) );
+      } catch(...) {}
+      try
+      {
+        ar( CEREAL_NVP(object) );
+      } catch(...) {}
+      try
+      {
+        ar( CEREAL_NVP(lights) );
+      } catch(...) {}
+    }
+
+    void save( const std::string& path ) const;
+    void load( const std::string& path );
+  };
+}
+#endif

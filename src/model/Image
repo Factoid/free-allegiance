@@ -1,0 +1,18 @@
+#ifndef __IMAGE_H__
+#define __IMAGE_H__
+
+#include "ResourceBase"
+#include <osg/Node>
+
+namespace fa
+{
+  class Image : public ResourceBase
+  {
+  public:
+    Image();
+    Image( const std::string& v );
+    osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node );
+  };
+}
+
+#endif

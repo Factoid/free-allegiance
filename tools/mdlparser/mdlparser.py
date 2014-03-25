@@ -6,6 +6,7 @@ import jsonpickle
 import json
 import os
 import PIL.Image
+import argparse
 
 class Ptr(object):
   pass
@@ -385,8 +386,14 @@ class NamespaceManager:
     except KeyError:
       print( "Couldn't find", namespace, libname )
       print( "Attempting to add {0}.mdl".format(libname) )
-      NamespaceManager.add( namespace, libname, MDLFile("../Artwork/{0}.mdl".format(libname),namespace).objects[libname])
-      return NamespaceManager.objects[namespace][libname]
+      try:
+        NamespaceManager.add( namespace, libname, MDLFile("{1}/{0}.mdl".format(libname,args.artwork),namespace).objects[libname])
+        print( "Trying again..." )
+        return NamespaceManager.objects[namespace][libname]
+      except (KeyError, FileNotFoundError):
+        print( "Still can't find asset, returning nothing" )
+        NamespaceManager.add( namespace, libname, None )
+        return NamespaceManager.objects[namespace][libname]
 
   @staticmethod
   def add( namespace, libname, obj ):
@@ -502,6 +509,7 @@ class MDLFile:
   token_str = ["OBJ_END","OBJ_FLOAT","OBJ_STRING","OBJ_TRUE","OBJ_FALSE","OBJ_LIST","OBJ_APPLY","OBJ_BINARY","OBJ_REF","OBJ_IMPORT","OBJ_PAIR"]
 
   def __init__(self,path,namespace):
+    print( "Loading MDL file", path, "in namespace", namespace )
     self.namespace = namespace
     with io.open(path,"rb") as self.f:
       magic, = struct.unpack("I",self.f.read(4))
@@ -625,8 +633,11 @@ if len(sys.argv) < 2:
   print( "Provide filename root" )
   exit(1)
 
-rootName = sys.argv[1]
-mdlName = rootName+".mdl"
+parser = argparse.ArgumentParser()
+parser.add_argument( 'file' )
+parser.add_argument( '--artwork', default="./Artwork" )
+parser.add_argument( '--dest', default="./decompiled" )
+args = parser.parse_args()
 
 NamespaceManager.add( "model", "ModifiableNumber", ModifiableNumberFactory() )
 NamespaceManager.add( "effect", "LightsGeo", LightsGeoFactory() )
@@ -639,9 +650,11 @@ NamespaceManager.add( "model", "ImportImage", ImportImageFactory() )
 NamespaceManager.add( "model", "GroupGeo", GroupGeoFactory() )
 NamespaceManager.add( "model", "FrameImage", FrameImageFactory() )
 NamespaceManager.add( "model", "ImportFont", ImportFontFactory() )
-MDLFile.write_path = "./decompiled/"
+MDLFile.write_path = args.dest
 try:
-  mdlfile = MDLFile("../Artwork/"+mdlName,rootName)
+  srcDir = os.path.join(args.artwork,args.file)+".mdl"
+  print("Src Path :",srcDir)
+  mdlfile = MDLFile(srcDir,args.file)
   mdlfile.write_json()
 except NotMDLException:
   print("ASCII MDL File, skipping")

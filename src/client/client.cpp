@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "ClientIgcSite"
+#include "model/ResourceBase"
 
 using namespace fa;
 
@@ -12,6 +13,8 @@ int main( int argc, char** argv )
 {
   try
   {
+    fa::ResourceBase::setResourceBase("decompiled/");
+
     UTL::SetArtPath( "Artwork/" );
     ClientIgcSite clientIgc;
     CmissionIGC mission;

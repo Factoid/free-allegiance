@@ -1,0 +1,29 @@
+#ifndef __LOD_GEO_H__
+#define __LOD_GEO_H__
+
+#include "Geo"
+#include <cereal/archives/json.hpp>
+#include <osg/Node>
+#include <memory>
+#include <cereal/types/map.hpp>
+
+namespace fa
+{
+  class LODGeo : public Geo
+  {
+  private:
+    std::unique_ptr<Geo> rootGeo;
+    std::map< float, std::shared_ptr<Geo> > lodGeo;
+
+  public:
+    LODGeo();
+    osg::ref_ptr<osg::Node> buildGraph( osg::ref_ptr<osg::Node> node );
+    template <class Archive> void serialize( Archive& ar )
+    {
+      ar( CEREAL_NVP(rootGeo) );
+      ar( CEREAL_NVP(lodGeo) );
+    }
+  };
+}
+
+#endif

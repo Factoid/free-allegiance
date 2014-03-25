@@ -5,6 +5,8 @@
 #include "model/LODGeo"
 #include "model/ResourceBase"
 
+using namespace fa;
+
 int main( int argc, char** argv )
 {
   if( argc < 2 )
