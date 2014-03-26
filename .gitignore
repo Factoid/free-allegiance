@@ -7,9 +7,9 @@ core
 *.so
 *.obj
 *.png
-fa
-/mdlviewer
-/client
+**/fa
+**/mdlviewer
+**/client
 *.a
 *.pyc
 *.swp
