@@ -3,7 +3,6 @@
 
 #include <igc/igc.h>
 #include "exceptions"
-#include "ModelManager"
 
 namespace fa
 {
@@ -231,10 +230,6 @@ namespace fa
     bool Reload(IshipIGC* pship, IlauncherIGC* plauncher, EquipmentType type) {
       throw NotImplementedException();
     }
-
-    private:
-      ModelManager modelManager;
-      TextureManager textureManager;
   };
 }
 

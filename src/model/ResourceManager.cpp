@@ -1,12 +1,15 @@
 #include "ResourceManager"
-
+#include "ModelDefinition"
 #include <osg/Vec3>
 #include <osgDB/ReadFile>
 
 namespace fa
 {
   std::shared_ptr<ResourceManager> ResourceManager::instance() {
-    _instance = std::shared_ptr<ResourceManager>(new ResourceManager);
+    if( _instance == nullptr )
+    {
+      _instance = std::shared_ptr<ResourceManager>(new ResourceManager);
+    }
     return _instance;
   }
 
@@ -23,9 +26,25 @@ namespace fa
       return it->second;
     }
 
-    osg::ref_ptr<osg::Image> img = osgDB::readImageFile( path );
+    osg::ref_ptr<osg::Image> img = osgDB::readImageFile( pathBase + path );
     images[path] = img;
     return img;
+  }
+
+  osg::ref_ptr<osg::Group> ResourceManager::getModel( const std::string& path )
+  {
+    auto it = models.find(path);
+    if( it != models.end() )
+    {
+      return it->second;
+    }
+
+    osg::ref_ptr<osg::Group> root( new osg::Group );
+    ModelDefinition mDef;
+    mDef.load( pathBase + path );
+    mDef.buildGraph(root.get());
+    models[path] = root;
+    return root;
   }
 
   osg::ref_ptr<osg::Geometry> ResourceManager::createQuad()
@@ -60,5 +79,16 @@ namespace fa
   }
 
   std::shared_ptr<ResourceManager> ResourceManager::_instance;
+  void ResourceManager::setPathBase( const std::string& base )
+  {
+    pathBase = base;
+  }
+
+  std::string ResourceManager::getPathBase() {
+    return pathBase;
+  }
+
+  std::string ResourceManager::pathBase;
+
 
 }

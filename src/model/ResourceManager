@@ -12,17 +12,23 @@ namespace fa
   class ResourceManager
   {
   public:
+    static void setPathBase( const std::string& base );
+    static std::string getPathBase();
+
     enum PrimativeType { PRIMATIVE_QUAD };
     static std::shared_ptr<ResourceManager> instance();
     osg::ref_ptr<osg::Drawable> getPrimative( ResourceManager::PrimativeType type );
     osg::ref_ptr<osg::Image> getImage( const std::string& name );
+    osg::ref_ptr<osg::Group> getModel( const std::string& name );
 
   private:
+    static std::string pathBase;
     typedef std::map< std::string, osg::ref_ptr<osg::Image> > ImageMap;
 
     static std::shared_ptr<ResourceManager> _instance;
     std::map< PrimativeType, osg::ref_ptr<osg::Geometry> > primatives;
     ImageMap images;
+    std::map< std::string, osg::ref_ptr<osg::Group>> models;
 
     osg::ref_ptr<osg::Geometry> createQuad();
     ResourceManager();

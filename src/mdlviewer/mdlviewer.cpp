@@ -3,7 +3,7 @@
 #include "model/ModelDefinition"
 #include "model/Color"
 #include "model/LODGeo"
-#include "model/ResourceBase"
+#include "model/ResourceManager"
 
 using namespace fa;
 
@@ -16,7 +16,9 @@ int main( int argc, char** argv )
   }
   osgViewer::Viewer viewer;
 
-  osg::ref_ptr<osg::Group> root( new osg::Group );
+  ResourceManager::setPathBase("decompiled/");
+  osg::ref_ptr<osg::Group> root = ResourceManager::instance()->getModel( argv[1] );
+/*
   std::string base("decompiled/");
   std::string name(argv[1]);
   ResourceBase::setResourceBase(base); 
@@ -24,7 +26,7 @@ int main( int argc, char** argv )
   ModelDefinition d2;
   d2.load( base + name + ".json" );
   d2.buildGraph( root.get() );
-
+*/
   osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> cameraManip( new osgGA::KeySwitchMatrixManipulator );
   viewer.setSceneData(root.get());
   viewer.run();

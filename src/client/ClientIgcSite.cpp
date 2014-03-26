@@ -2,6 +2,7 @@
 #include "ClientIgcSite"
 #include <iostream>
 #include "model/ModelDefinition"
+#include "model/ResourceManager"
 
 std::ostream& operator<< (std::ostream& os, const Color& c)
 {
@@ -27,15 +28,14 @@ namespace fa
 		if( modelName != nullptr )
 		{
 		  std::string model( modelName );
-//			std::cout << "Preload model : " << model << "\n";
-      modelManager.load( modelName );
+      ResourceManager::instance()->getModel( model + ".json" );
 		}
 
 		if( textureName != nullptr )
 		{
 		  std::string texture( textureName );
 			std::cout << "Preload texture : " << texture << "\n";
-      textureManager.load( textureName );
+      ResourceManager::instance()->getImage( texture + ".png" );
 		}
 	}
 

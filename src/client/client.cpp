@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include "ClientIgcSite"
-#include "model/ResourceBase"
+#include "model/ResourceManager"
 
 using namespace fa;
 
@@ -13,7 +13,7 @@ int main( int argc, char** argv )
 {
   try
   {
-    fa::ResourceBase::setResourceBase("decompiled/");
+    fa::ResourceManager::setPathBase("decompiled/");
 
     UTL::SetArtPath( "Artwork/" );
     ClientIgcSite clientIgc;
@@ -36,7 +36,6 @@ int main( int argc, char** argv )
     mission.EnterGame();
 
     osgViewer::Viewer viewer;
-    osg::ref_ptr<osg::Group> root( new osg::Group );
     osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> cameraManip( new osgGA::KeySwitchMatrixManipulator );
     viewer.run();
   } catch( std::exception& e )

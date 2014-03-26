@@ -13,15 +13,12 @@ namespace fa
     ResourceBase();
     virtual ~ResourceBase();
 
-    static void setResourceBase( const std::string& b );
-    
     template <class Archive> void serialize( Archive& ar )
     {
       ar( CEREAL_NVP(resourcePath) );
     }
 
   protected:
-    static std::string resourceBase;
     std::string resourcePath;
   };
 }
