@@ -1,9 +1,10 @@
 #include <osgViewer/Viewer>
-#include <osgGA/KeySwitchMatrixManipulator>
+#include <osgGA/UFOManipulator>
 #include "model/ModelDefinition"
 #include "model/Color"
 #include "model/LODGeo"
 #include "model/ResourceManager"
+#include <osg/MatrixTransform>
 
 using namespace fa;
 
@@ -17,18 +18,22 @@ int main( int argc, char** argv )
   osgViewer::Viewer viewer;
 
   ResourceManager::setPathBase("decompiled/");
-  osg::ref_ptr<osg::Group> root = ResourceManager::instance()->getModel( argv[1] );
-/*
-  std::string base("decompiled/");
-  std::string name(argv[1]);
-  ResourceBase::setResourceBase(base); 
+  osg::ref_ptr<osg::Group> root( new osg::Group );
+  osg::ref_ptr<osg::MatrixTransform> m1( new osg::MatrixTransform );
+  osg::ref_ptr<osg::MatrixTransform> m2( new osg::MatrixTransform );
+  osg::ref_ptr<osg::Group> mdl = ResourceManager::instance()->getModel( std::string(argv[1]) + ".json" );
 
-  ModelDefinition d2;
-  d2.load( base + name + ".json" );
-  d2.buildGraph( root.get() );
-*/
-  osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> cameraManip( new osgGA::KeySwitchMatrixManipulator );
-  viewer.setSceneData(root.get());
+//  root->addChild( m1 );
+//  root->addChild( m2 );
+//  m1->setMatrix( osg::Matrix::translate( 2, 0, 0 ) );
+//  m1->addChild( mdl );
+//  m2->setMatrix( osg::Matrix::translate( -3, 0, 0 ) );
+//  m2->addChild( mdl );
+  
+  osg::ref_ptr<osgGA::CameraManipulator> cameraManip( new osgGA::UFOManipulator );
+//  viewer.setCameraManipulator( cameraManip );
+//  viewer.setSceneData(root);
+  viewer.setSceneData(mdl);
   viewer.run();
   
   return 0;

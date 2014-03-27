@@ -3,11 +3,43 @@
 #include <iostream>
 #include "model/ModelDefinition"
 #include "model/ResourceManager"
+#include "Geo"
+#include <osg/MatrixTransform>
 
 std::ostream& operator<< (std::ostream& os, const Color& c)
 {
   return os << c.R() << ", " << c.G() << ", " << c.B() << ", " << c.A();
 }
+
+class MyThingSite : public ThingSite
+{
+public:
+  MyThingSite() {}
+  Geo* GetGeo() { return &geo; }
+
+  HRESULT LoadAleph( const char* textureName )
+  {
+    std::cout << "ThingSite load aleph texture " << textureName << "\n";
+    return S_OK;
+  }
+  HRESULT LoadModel( int options, const char* modelName, const char* textureName )
+  {
+    std::cout << "ThingSite load model ";
+    if( modelName )
+    {
+      std::cout << " model = " << modelName;
+      geo.setModel( modelName );
+    }
+    if( textureName )
+    {
+      std::cout << " texture = " << textureName;
+    }
+    std::cout << "\n";
+    return S_OK;
+  }
+private:
+  Geo geo;
+};
 
 namespace fa
 {
@@ -28,14 +60,13 @@ namespace fa
 		if( modelName != nullptr )
 		{
 		  std::string model( modelName );
-      ResourceManager::instance()->getModel( model + ".json" );
+//      ResourceManager::instance()->getModel( model + ".json" );
 		}
 
 		if( textureName != nullptr )
 		{
 		  std::string texture( textureName );
-			std::cout << "Preload texture : " << texture << "\n";
-      ResourceManager::instance()->getImage( texture + ".png" );
+//      ResourceManager::instance()->getImage( texture + ".png" );
 		}
 	}
 
@@ -44,7 +75,7 @@ namespace fa
     if( name != nullptr )
     {
       std::string icon( name );
-      std::cout << "Load Radar Icon : " << name << "\n";
+//      std::cout << "Load Radar Icon : " << name << "\n";
     }
     return nullptr;
   }
@@ -67,7 +98,7 @@ namespace fa
   std::shared_ptr<ThingSite> ClientIgcSite::CreateThingSite(ImodelIGC* pModel)
   {
     std::cout << "Creating thing site for model " << pModel->GetName() << "\n";
-    return std::shared_ptr<ThingSite>( new ThingSite );
+    return std::shared_ptr<ThingSite>( new MyThingSite );
   }
 
   void ClientIgcSite::SideBuildingTechChange(IsideIGC* s)
