@@ -20,6 +20,7 @@ public:
   HRESULT LoadAleph( const char* textureName )
   {
     std::cout << "ThingSite load aleph texture " << textureName << "\n";
+    geo.setModel( "aleph_sphere" );
     return S_OK;
   }
   HRESULT LoadModel( int options, const char* modelName, const char* textureName )
@@ -27,6 +28,7 @@ public:
     std::cout << "ThingSite load model ";
     if( modelName )
     {
+      if( std::string(modelName) == "ss24a" ) return S_OK;
       std::cout << " model = " << modelName;
       geo.setModel( modelName );
     }
@@ -37,8 +39,38 @@ public:
     std::cout << "\n";
     return S_OK;
   }
+  void SetPosition( const Vector& pos )
+  {
+    std::cout << "Set position " << this << "\n";
+    tform.SetPosition(pos);
+    UpdateMatrix();
+  }
+  void SetOrientation( const Orientation& orient )
+  {
+    std::cout << "Set orientation " << this << "\n";
+    tform.SetOrientation(orient);
+    UpdateMatrix();
+  }
+  void SetRadius( float r )
+  {
+    std::cout << "Set radius " << r << " " << this << "\n";
+    if( r < 10 ) r = 1;
+    radius = r;
+  }
+
 private:
+  void UpdateMatrix()
+  {
+    Vector v = tform.GetPosition();
+    if( geo.model )
+    {
+      geo.model->setMatrix( osg::Matrix::scale( radius, radius, radius ) * osg::Matrix::translate( v.X(), v.Y(), v.Z() ) );
+    }
+  }
+
   Geo geo;
+  Transform44 tform;
+  float radius = 1.0f;
 };
 
 namespace fa

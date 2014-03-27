@@ -20,8 +20,6 @@ osg::ref_ptr<osg::Group> createCluster( IclusterIGC* cluster )
     std::cout << "Getting Model " << m->GetName() << " " << tSite << " " << geo << "\n";
     if( geo->model )
     {
-      const Vector& v = m->GetPosition();
-      geo->model->setMatrix( osg::Matrix::translate( v.X(), v.Y(), v.Z() ) );
       root->addChild( geo->model );
     }
   }
@@ -55,6 +53,7 @@ int main( int argc, char** argv )
     mission.EnterGame();
 
     osg::ref_ptr<osg::Group> root = createCluster( mission.GetSide(0)->GetStation(0)->GetCluster() ); 
+
     osgViewer::Viewer viewer;
     osg::ref_ptr<osgGA::UFOManipulator> cameraManip( new osgGA::UFOManipulator );
     cameraManip->setForwardSpeed( cameraManip->getForwardSpeed() * 10000.0f );
@@ -66,7 +65,8 @@ int main( int argc, char** argv )
     fovy *= 2.0f;
     zFar *= 100.0f;
     viewer.getCamera()->setProjectionMatrixAsPerspective( fovy, ar, zNear, zFar );
-    viewer.setCameraManipulator( cameraManip );
+//    viewer.getCamera()->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
+//    viewer.setCameraManipulator( cameraManip );
     viewer.setSceneData(root);
     viewer.run();
   } catch( std::exception& e )
