@@ -5,11 +5,7 @@
 #include "model/ResourceManager"
 #include "Geo"
 #include <osg/MatrixTransform>
-
-std::ostream& operator<< (std::ostream& os, const Color& c)
-{
-  return os << c.R() << ", " << c.G() << ", " << c.B() << ", " << c.A();
-}
+#include "formatters"
 
 class MyThingSite : public ThingSite
 {
@@ -28,7 +24,6 @@ public:
     std::cout << "ThingSite load model ";
     if( modelName )
     {
-      if( std::string(modelName) == "ss24a" ) return S_OK;
       std::cout << " model = " << modelName;
       geo.setModel( modelName );
     }
@@ -64,7 +59,8 @@ private:
     Vector v = tform.GetPosition();
     if( geo.model )
     {
-      geo.model->setMatrix( osg::Matrix::scale( radius, radius, radius ) * osg::Matrix::translate( v.X(), v.Y(), v.Z() ) );
+      float scale = radius / geo.getRadius();
+      geo.model->setMatrix( osg::Matrix::scale( scale, scale, scale ) * osg::Matrix::translate( v.X(), v.Y(), v.Z() ) );
     }
   }
 
