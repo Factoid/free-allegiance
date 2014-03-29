@@ -1,5 +1,6 @@
 #include <osgViewer/Viewer>
 #include <osgGA/UFOManipulator>
+#include <osgGA/TrackballManipulator>
 #include <igc/pch.h>
 #include <igc/missionIGC.h>
 #include <iostream>
@@ -24,26 +25,6 @@ osg::ref_ptr<osg::Group> createCluster( IclusterIGC* cluster )
       root->addChild( geo->model );
     }
   }
-  Vector lDir = cluster->GetLightDirection();
-  Color lCol = cluster->GetLightColor();
-//  lCol.SetGreen(0.0f);
-//  lCol.SetBlue(0.0f);
-//  lCol.SetRed(0.0f);
-  osg::ref_ptr<osg::StateSet> sset( new osg::StateSet );
-  root->setStateSet(sset);
-  osg::ref_ptr<osg::Light> l( new osg::Light );
-  l->setLightNum(1);
-  l->setAmbient( osg::Vec4( lCol.R(), lCol.G(), lCol.B(), lCol.A() ) );
-  l->setDiffuse( osg::Vec4( lCol.R(), lCol.G(), lCol.B(), lCol.A() ) );
-  l->setDirection( osg::Vec3( lDir.X(), lDir.Y(), lDir.Z() ) );
-  l->setConstantAttenuation( 1.0f );
-  l->setLinearAttenuation( 0.0f );
-  l->setQuadraticAttenuation( 0.0f );
-  osg::ref_ptr<osg::LightSource> ls( new osg::LightSource );
-  ls->setLight(l);
-  ls->setLocalStateSetModes(osg::StateAttribute::ON);
-  ls->setStateSetModes(*sset, osg::StateAttribute::ON);
-  std::cout << "Light direction is " << lDir << " color is " << lCol << "\n";
   return root;
 }
 
@@ -72,6 +53,7 @@ int main( int argc, char** argv )
     mission.GenerateMission( start, mission.GetMissionParams(), nullptr, nullptr );
     mission.SetStartTime( start );
     mission.EnterGame();
+    mission.SetMissionStage(STAGE_STARTED); 
 
     osg::ref_ptr<osg::Group> root = createCluster( mission.GetSide(0)->GetStation(0)->GetCluster() ); 
 
@@ -81,15 +63,25 @@ int main( int argc, char** argv )
     cameraManip->setSideSpeed( cameraManip->getSideSpeed() * 10000.0f );
     cameraManip->setRotationSpeed( cameraManip->getRotationSpeed() * 1000.0f );
 
+/*
     double fovy, ar, zNear, zFar;
     viewer.getCamera()->getProjectionMatrixAsPerspective( fovy, ar, zNear, zFar );
     fovy *= 2.0f;
     zFar *= 100.0f;
     viewer.getCamera()->setProjectionMatrixAsPerspective( fovy, ar, zNear, zFar );
+    viewer.setCameraManipulator( cameraManip );
+*/  
+    viewer.setCameraManipulator( new osgGA::TrackballManipulator );
     viewer.getCamera()->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
-//    viewer.setCameraManipulator( cameraManip );
     viewer.setSceneData(root);
-    viewer.run();
+    //viewer.run();
+    viewer.realize();
+    while(!viewer.done())
+    {
+      mission.Update( Clock::now() );
+      viewer.frame();
+    }
+
   } catch( std::exception& e )
   {
     std::cerr << "exception caught " << e.what() << "\n";

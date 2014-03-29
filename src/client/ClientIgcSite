@@ -40,9 +40,8 @@ namespace fa
       throw NotImplementedException();
     }
     void StationTypeChange(IstationIGC* s);
-    void ClusterUpdateEvent(IclusterIGC* c) {
-      throw NotImplementedException();
-    }
+    void ClusterUpdateEvent(IclusterIGC* c);
+
     void BuildStation(IasteroidIGC* pasteroid, IsideIGC* pside, IstationTypeIGC* pstationtype, Time now, bool pbseensides[]) { //Imago #120 #121 8/10
       throw NotImplementedException();
     }

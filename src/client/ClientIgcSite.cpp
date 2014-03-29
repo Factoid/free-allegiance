@@ -36,19 +36,16 @@ public:
   }
   void SetPosition( const Vector& pos )
   {
-    std::cout << "Set position " << this << "\n";
     tform.SetPosition(pos);
     UpdateMatrix();
   }
   void SetOrientation( const Orientation& orient )
   {
-    std::cout << "Set orientation " << this << "\n";
     tform.SetOrientation(orient);
     UpdateMatrix();
   }
   void SetRadius( float r )
   {
-    std::cout << "Set radius " << r << " " << this << "\n";
     if( r < 10 ) r = 1;
     radius = r;
   }
@@ -60,7 +57,15 @@ private:
     if( geo.model )
     {
       float scale = radius / geo.getRadius();
-      geo.model->setMatrix( osg::Matrix::scale( scale, scale, scale ) * osg::Matrix::translate( v.X(), v.Y(), v.Z() ) );
+      float m[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
+      for( int i = 0; i < 3; ++i )
+      {
+        for( int j = 0; j < 3; ++j )
+        {
+          m[i*4+j] = tform.GetOrientation()[i][j];
+        }
+      }
+      geo.model->setMatrix( osg::Matrix::scale( scale, scale, scale ) * osg::Matrix( m ) * osg::Matrix::translate( v.X(), v.Y(), v.Z() ) );
     }
   }
 
@@ -139,4 +144,7 @@ namespace fa
     std::cout << "Station type change for station " << s->GetName() << "\n";
   }
 
+  void ClientIgcSite::ClusterUpdateEvent( IclusterIGC* c )
+  {
+  }
 }
