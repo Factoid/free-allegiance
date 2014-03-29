@@ -7,6 +7,10 @@
 #include <osg/MatrixTransform>
 #include "formatters"
 
+class MyClusterSite : public ClusterSite
+{
+};
+
 class MyThingSite : public ThingSite
 {
 public:
@@ -46,7 +50,6 @@ public:
   }
   void SetRadius( float r )
   {
-    if( r < 10 ) r = 1;
     radius = r;
   }
 
@@ -125,7 +128,7 @@ namespace fa
   std::shared_ptr<ClusterSite> ClientIgcSite::CreateClusterSite( IclusterIGC* pCluster )
   {
     std::cout << "Creating cluster site for cluster " << pCluster->GetName() << "\n";
-    return std::shared_ptr<ClusterSite>( new ClusterSite );
+    return std::shared_ptr<ClusterSite>( new MyClusterSite );
   }
 
   std::shared_ptr<ThingSite> ClientIgcSite::CreateThingSite(ImodelIGC* pModel)
@@ -146,5 +149,15 @@ namespace fa
 
   void ClientIgcSite::ClusterUpdateEvent( IclusterIGC* c )
   {
+  }
+
+  void ClientIgcSite::LoadoutChangeEvent( IshipIGC* pship, IpartIGC* ppart, LoadoutChange lc )
+  {
+    std::cout << "Ship " << pship << " part " << ppart << " change " << lc << "\n";
+  }
+
+  void ClientIgcSite::ChangeCluster( IshipIGC* pship, IclusterIGC* pclusterOld, IclusterIGC* pclusterNew )
+  {
+    std::cout << "Ship " << pship << " moved from cluster " << pclusterOld << " to " << pclusterNew << "\n";
   }
 }

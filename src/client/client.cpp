@@ -28,6 +28,31 @@ osg::ref_ptr<osg::Group> createCluster( IclusterIGC* cluster )
   return root;
 }
 
+IshipIGC* launchShip( ImissionIGC& mission )
+{
+  IsideIGC* side0 = mission.GetSide(0);
+  DataShipIGC shipData;
+  shipData.shipID = mission.GenerateNewShipID();
+  shipData.hullID = 210; // The Factoid scout
+  shipData.sideID = side0->GetObjectID();
+  shipData.nKills = 0;
+  shipData.nDeaths = 0;
+  shipData.pilotType = c_ptPlayer;
+  shipData.nEjections = 0;
+  strcpy(shipData.name,"Factoid");
+  shipData.nParts = 0;
+  shipData.baseObjectID = NA;
+
+  IshipIGC* ship = (IshipIGC*)mission.CreateObject(mission.GetLastUpdate(),OT_ship,&shipData,sizeof(shipData));
+  IstationIGC* station = side0->GetStation(0);
+  station->RepairAndRefuel(ship);
+  station->Launch(ship);
+  ControlData cd;
+  cd.jsValues[c_axisThrottle] = 1.0f;
+  ship->SetControls(cd);
+  return ship;
+}
+
 int main( int argc, char** argv )
 {
   try
@@ -55,32 +80,33 @@ int main( int argc, char** argv )
     mission.EnterGame();
     mission.SetMissionStage(STAGE_STARTED); 
 
-    osg::ref_ptr<osg::Group> root = createCluster( mission.GetSide(0)->GetStation(0)->GetCluster() ); 
-
     osgViewer::Viewer viewer;
     osg::ref_ptr<osgGA::UFOManipulator> cameraManip( new osgGA::UFOManipulator );
     cameraManip->setForwardSpeed( cameraManip->getForwardSpeed() * 10000.0f );
     cameraManip->setSideSpeed( cameraManip->getSideSpeed() * 10000.0f );
     cameraManip->setRotationSpeed( cameraManip->getRotationSpeed() * 1000.0f );
 
-/*
     double fovy, ar, zNear, zFar;
     viewer.getCamera()->getProjectionMatrixAsPerspective( fovy, ar, zNear, zFar );
-    fovy *= 2.0f;
     zFar *= 100.0f;
     viewer.getCamera()->setProjectionMatrixAsPerspective( fovy, ar, zNear, zFar );
-    viewer.setCameraManipulator( cameraManip );
-*/  
+    //viewer.setCameraManipulator( cameraManip );
     viewer.setCameraManipulator( new osgGA::TrackballManipulator );
     viewer.getCamera()->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
-    viewer.setSceneData(root);
     //viewer.run();
     viewer.realize();
+    /*IshipIGC* ship = */launchShip( mission );
+    std::cout << "Create cluster\n";
+    osg::ref_ptr<osg::Group> root = createCluster( mission.GetSide(0)->GetStation(0)->GetCluster() ); 
+    viewer.setSceneData(root);
+    std::cout << "Start game loop\n";
     while(!viewer.done())
     {
       mission.Update( Clock::now() );
+//      std::cout << "ship pos " << ship->GetPosition() << "\n";
       viewer.frame();
     }
+    std::cout << "Shuttind down\n";
 
   } catch( std::exception& e )
   {

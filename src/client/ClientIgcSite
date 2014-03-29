@@ -194,9 +194,8 @@ namespace fa
     void ChangeStation(IshipIGC* pship, IstationIGC* pstationOld, IstationIGC* pstationNew) {    //changing clusters
       throw NotImplementedException();
     }
-    void ChangeCluster(IshipIGC* pship, IclusterIGC* pclusterOld, IclusterIGC* pclusterNew) {    //changing clusters
-      throw NotImplementedException();
-    }
+    void ChangeCluster(IshipIGC* pship, IclusterIGC* pclusterOld, IclusterIGC* pclusterNew);
+    
     void CommandChangedEvent(Command i, IshipIGC * pship, ImodelIGC* ptarget, CommandID cid) {
       throw NotImplementedException();
     }
@@ -207,9 +206,8 @@ namespace fa
     void DestroyTeleportProbe(IprobeIGC* pprobe) {
       throw NotImplementedException();
     }
-    void LoadoutChangeEvent(IshipIGC* pship, IpartIGC* ppart, LoadoutChange lc) {
-      throw NotImplementedException();
-    }
+    void LoadoutChangeEvent(IshipIGC* pship, IpartIGC* ppart, LoadoutChange lc);
+
     IObject* LoadRadarIcon(const char* szName);
     void ChangeGameState(void) {
       throw NotImplementedException();
