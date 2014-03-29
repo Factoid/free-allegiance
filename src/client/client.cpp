@@ -1,6 +1,8 @@
 #include <osgViewer/Viewer>
 #include <osgGA/UFOManipulator>
 #include <osgGA/TrackballManipulator>
+#include <osgGA/NodeTrackerManipulator>
+#include <osgGA/CameraManipulator>
 #include <igc/pch.h>
 #include <igc/missionIGC.h>
 #include <iostream>
@@ -9,6 +11,7 @@
 #include "model/ResourceManager"
 #include "Geo"
 #include "formatters"
+#include "MyThingSite"
 
 using namespace fa;
 
@@ -90,12 +93,10 @@ int main( int argc, char** argv )
     viewer.getCamera()->getProjectionMatrixAsPerspective( fovy, ar, zNear, zFar );
     zFar *= 100.0f;
     viewer.getCamera()->setProjectionMatrixAsPerspective( fovy, ar, zNear, zFar );
-    //viewer.setCameraManipulator( cameraManip );
-    viewer.setCameraManipulator( new osgGA::TrackballManipulator );
     viewer.getCamera()->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
-    //viewer.run();
     viewer.realize();
-    /*IshipIGC* ship = */launchShip( mission );
+    IshipIGC* ship = launchShip( mission );
+    MyThingSite* mts = dynamic_cast<MyThingSite*>(ship->GetThingSite());
     std::cout << "Create cluster\n";
     osg::ref_ptr<osg::Group> root = createCluster( mission.GetSide(0)->GetStation(0)->GetCluster() ); 
     viewer.setSceneData(root);
@@ -103,7 +104,7 @@ int main( int argc, char** argv )
     while(!viewer.done())
     {
       mission.Update( Clock::now() );
-//      std::cout << "ship pos " << ship->GetPosition() << "\n";
+      viewer.getCamera()->setViewMatrixAsLookAt( mts->GetPosition() - mts->GetForward() * (3*ship->GetRadius()), mts->GetPosition(), mts->GetUp() );
       viewer.frame();
     }
     std::cout << "Shuttind down\n";

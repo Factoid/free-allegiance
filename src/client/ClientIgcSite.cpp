@@ -6,75 +6,10 @@
 #include "Geo"
 #include <osg/MatrixTransform>
 #include "formatters"
+#include "MyThingSite"
 
 class MyClusterSite : public ClusterSite
 {
-};
-
-class MyThingSite : public ThingSite
-{
-public:
-  MyThingSite() {}
-  Geo* GetGeo() { return &geo; }
-
-  HRESULT LoadAleph( const char* textureName )
-  {
-    std::cout << "ThingSite load aleph texture " << textureName << "\n";
-    geo.setModel( "aleph_sphere" );
-    return S_OK;
-  }
-  HRESULT LoadModel( int options, const char* modelName, const char* textureName )
-  {
-    std::cout << "ThingSite load model ";
-    if( modelName )
-    {
-      std::cout << " model = " << modelName;
-      geo.setModel( modelName );
-    }
-    if( textureName )
-    {
-      std::cout << " texture = " << textureName;
-    }
-    std::cout << "\n";
-    return S_OK;
-  }
-  void SetPosition( const Vector& pos )
-  {
-    tform.SetPosition(pos);
-    UpdateMatrix();
-  }
-  void SetOrientation( const Orientation& orient )
-  {
-    tform.SetOrientation(orient);
-    UpdateMatrix();
-  }
-  void SetRadius( float r )
-  {
-    radius = r;
-  }
-
-private:
-  void UpdateMatrix()
-  {
-    Vector v = tform.GetPosition();
-    if( geo.model )
-    {
-      float scale = radius / geo.getRadius();
-      float m[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
-      for( int i = 0; i < 3; ++i )
-      {
-        for( int j = 0; j < 3; ++j )
-        {
-          m[i*4+j] = tform.GetOrientation()[i][j];
-        }
-      }
-      geo.model->setMatrix( osg::Matrix::scale( scale, scale, scale ) * osg::Matrix( m ) * osg::Matrix::translate( v.X(), v.Y(), v.Z() ) );
-    }
-  }
-
-  Geo geo;
-  Transform44 tform;
-  float radius = 1.0f;
 };
 
 namespace fa
