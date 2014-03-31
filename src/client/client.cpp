@@ -58,10 +58,15 @@ IshipIGC* launchShip( ImissionIGC& mission )
 
 class MyEventHandler : public osgGA::GUIEventHandler
 {
+private:
+  bool mouseStick = false;
+
 public:
+  osgViewer::Viewer* viewer;
   bool handle( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object* obj, osg::NodeVisitor* nv )
   {
     auto et = (unsigned int)ea.getEventType();
+    bool ok = true;
     while( et != 0 )
     {
       auto e = et & ~(et-1);
@@ -69,22 +74,44 @@ public:
       switch( e )
       {
         case osgGA::GUIEventAdapter::EventType::PUSH:
-          std::cout << "Push event\n";
+          std::cout << "Push event " << ea.getButtonMask() << "\n";
           break;
         case osgGA::GUIEventAdapter::EventType::RELEASE:
-          std::cout << "Release event\n";
+          std::cout << "Release event " << ea.getButtonMask() << "\n";
           break;
         case osgGA::GUIEventAdapter::EventType::MOVE:
-          std::cout << "Move event\n";
+          if( ea.getXnormalized() == 0 && ea.getYnormalized() == 0 ) break;
+//          std::cout << "Move event " << ea.getX() << ", " << ea.getY() << "\n";
+          std::cout << "dx = " << ea.getXnormalized() << ", " << ea.getYnormalized() << "\n";
+          if( mouseStick )
+          {
+            aa.requestWarpPointer( (ea.getXmin() + ea.getXmax())/2, (ea.getYmin() + ea.getYmax())/2 );
+          }
           break;
         case osgGA::GUIEventAdapter::EventType::DRAG:
-          std::cout << "Drag event\n";
+          std::cout << "Drag event " << ea.getX() << ", " << ea.getY() << "\n";
           break;
         case osgGA::GUIEventAdapter::EventType::KEYDOWN:
-          std::cout << "Key down event\n";
+          std::cout << "Key Down event " << std::hex << ea.getUnmodifiedKey() << "\n";
+          if( ea.getUnmodifiedKey() == osgGA::GUIEventAdapter::KeySymbol::KEY_Space )
+          {
+            mouseStick = !mouseStick;
+            if( viewer != nullptr ) {
+              osgViewer::Viewer::Windows w;
+              viewer->getWindows(w);
+              for( auto win : w )
+              {
+                win->useCursor( !mouseStick );
+              }
+            }
+            if( mouseStick )
+            {
+              aa.requestWarpPointer( (ea.getXmin() + ea.getXmax())/2, (ea.getYmin() + ea.getYmax())/2 );
+            }
+          }
           break;
         case osgGA::GUIEventAdapter::EventType::KEYUP:
-          std::cout << "Key up event\n";
+          std::cout << "Key Up event " << std::hex << ea.getUnmodifiedKey() << "\n";
           break;
         case osgGA::GUIEventAdapter::EventType::SCROLL:
           std::cout << "Scroll event\n";
@@ -93,15 +120,14 @@ public:
           std::cout << "Resize event\n";
           break;
         case osgGA::GUIEventAdapter::EventType::FRAME:
-          std::cout << "Frame event\n";
           break;
         default:
           std::cout << "ET = " << e << "\n";
-          return false;
+          ok = false;
       }
     }
 //    std::cout << "Event " << ea.getEventType() << ", " << ea.getTime() << ", " << ea.getKey() << ", " << ea.getUnmodifiedKey() << ", " << ea.getButton() << ", " << ea.getScrollingDeltaX() << ", " << ea.getScrollingDeltaY() << "\n";
-    return true;
+    return ok;
   }
 };
 
@@ -134,6 +160,7 @@ int main( int argc, char** argv )
 
     osgViewer::Viewer viewer;
     osg::ref_ptr<MyEventHandler> evh( new MyEventHandler );
+    evh->viewer = &viewer;
     viewer.addEventHandler( evh );
 
     double fovy, ar, zNear, zFar;
