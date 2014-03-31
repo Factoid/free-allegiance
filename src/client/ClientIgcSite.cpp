@@ -69,7 +69,7 @@ namespace fa
   std::shared_ptr<ThingSite> ClientIgcSite::CreateThingSite(ImodelIGC* pModel)
   {
     std::cout << "Creating thing site for model " << pModel->GetName() << "\n";
-    return std::shared_ptr<ThingSite>( new MyThingSite );
+    return std::shared_ptr<ThingSite>( new MyThingSite(pModel) );
   }
 
   void ClientIgcSite::SideBuildingTechChange(IsideIGC* s)

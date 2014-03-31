@@ -2,6 +2,7 @@
 #include "ModelDefinition"
 #include <osg/Vec3>
 #include <osgDB/ReadFile>
+#include <osg/MatrixTransform>
 
 namespace fa
 {
@@ -39,10 +40,11 @@ namespace fa
       return it->second;
     }
 
-    osg::ref_ptr<osg::Group> root( new osg::Group );
+    osg::ref_ptr<osg::MatrixTransform> root( new osg::MatrixTransform );
     ModelDefinition mDef;
     mDef.load( pathBase + path );
     mDef.buildGraph(root.get());
+    root->setMatrix( osg::Matrix::rotate( osg::Vec3( 0, 0, 1 ), osg::Vec3(0, -1, 0) ) * osg::Matrix::rotate( osg::Vec3( 0, -1, 0 ), osg::Vec3( 0, 1, 0 ) ) );
     models[path] = root;
     return root;
   }

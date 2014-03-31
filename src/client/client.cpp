@@ -56,6 +56,55 @@ IshipIGC* launchShip( ImissionIGC& mission )
   return ship;
 }
 
+class MyEventHandler : public osgGA::GUIEventHandler
+{
+public:
+  bool handle( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object* obj, osg::NodeVisitor* nv )
+  {
+    auto et = (unsigned int)ea.getEventType();
+    while( et != 0 )
+    {
+      auto e = et & ~(et-1);
+      et = et & (et-1);
+      switch( e )
+      {
+        case osgGA::GUIEventAdapter::EventType::PUSH:
+          std::cout << "Push event\n";
+          break;
+        case osgGA::GUIEventAdapter::EventType::RELEASE:
+          std::cout << "Release event\n";
+          break;
+        case osgGA::GUIEventAdapter::EventType::MOVE:
+          std::cout << "Move event\n";
+          break;
+        case osgGA::GUIEventAdapter::EventType::DRAG:
+          std::cout << "Drag event\n";
+          break;
+        case osgGA::GUIEventAdapter::EventType::KEYDOWN:
+          std::cout << "Key down event\n";
+          break;
+        case osgGA::GUIEventAdapter::EventType::KEYUP:
+          std::cout << "Key up event\n";
+          break;
+        case osgGA::GUIEventAdapter::EventType::SCROLL:
+          std::cout << "Scroll event\n";
+          break;
+        case osgGA::GUIEventAdapter::EventType::RESIZE:
+          std::cout << "Resize event\n";
+          break;
+        case osgGA::GUIEventAdapter::EventType::FRAME:
+          std::cout << "Frame event\n";
+          break;
+        default:
+          std::cout << "ET = " << e << "\n";
+          return false;
+      }
+    }
+//    std::cout << "Event " << ea.getEventType() << ", " << ea.getTime() << ", " << ea.getKey() << ", " << ea.getUnmodifiedKey() << ", " << ea.getButton() << ", " << ea.getScrollingDeltaX() << ", " << ea.getScrollingDeltaY() << "\n";
+    return true;
+  }
+};
+
 int main( int argc, char** argv )
 {
   try
@@ -84,10 +133,8 @@ int main( int argc, char** argv )
     mission.SetMissionStage(STAGE_STARTED); 
 
     osgViewer::Viewer viewer;
-    osg::ref_ptr<osgGA::UFOManipulator> cameraManip( new osgGA::UFOManipulator );
-    cameraManip->setForwardSpeed( cameraManip->getForwardSpeed() * 10000.0f );
-    cameraManip->setSideSpeed( cameraManip->getSideSpeed() * 10000.0f );
-    cameraManip->setRotationSpeed( cameraManip->getRotationSpeed() * 1000.0f );
+    osg::ref_ptr<MyEventHandler> evh( new MyEventHandler );
+    viewer.addEventHandler( evh );
 
     double fovy, ar, zNear, zFar;
     viewer.getCamera()->getProjectionMatrixAsPerspective( fovy, ar, zNear, zFar );
@@ -95,16 +142,29 @@ int main( int argc, char** argv )
     viewer.getCamera()->setProjectionMatrixAsPerspective( fovy, ar, zNear, zFar );
     viewer.getCamera()->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
     viewer.realize();
+#if MANIP
+    launchShip( mission );
+#else
     IshipIGC* ship = launchShip( mission );
     MyThingSite* mts = dynamic_cast<MyThingSite*>(ship->GetThingSite());
+#endif
     std::cout << "Create cluster\n";
     osg::ref_ptr<osg::Group> root = createCluster( mission.GetSide(0)->GetStation(0)->GetCluster() ); 
     viewer.setSceneData(root);
+
+#if MANIP
+    osg::ref_ptr<osgGA::TrackballManipulator> cManip( new osgGA::TrackballManipulator );
+    viewer.setCameraManipulator(cManip); 
+#endif
     std::cout << "Start game loop\n";
     while(!viewer.done())
     {
       mission.Update( Clock::now() );
-      viewer.getCamera()->setViewMatrixAsLookAt( mts->GetPosition() - mts->GetForward() * (3*ship->GetRadius()), mts->GetPosition(), mts->GetUp() );
+#if !MANIP
+      osg::Vec3 e = mts->GetCockpit();
+      osg::Vec3 c = c + (mts->GetForward()*3);
+      viewer.getCamera()->setViewMatrixAsLookAt( e, c, mts->GetUp() );
+#endif
       viewer.frame();
     }
     std::cout << "Shuttind down\n";
