@@ -14,18 +14,6 @@ class MyClusterSite : public ClusterSite
 
 namespace fa
 {
-  std::ostream& operator<< (std::ostream& os, const TechTreeBitMask& bm )
-  {
-    for( unsigned long int i = 0; i < 400; ++i )
-    {
-      if( bm.GetBit(i) )
-      {
-        os << i << " ";
-      }
-    }
-    return os;
-  }
-
   void ClientIgcSite::Preload( const char* modelName, const char* textureName )
 	{
 		if( modelName != nullptr )

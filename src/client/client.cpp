@@ -60,8 +60,11 @@ class MyEventHandler : public osgGA::GUIEventHandler
 {
 private:
   bool mouseStick = false;
+  ControlData controlData;
 
 public:
+  const ControlData& getControls() const { return controlData; }
+
   osgViewer::Viewer* viewer;
   bool handle( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object* obj, osg::NodeVisitor* nv )
   {
@@ -81,10 +84,11 @@ public:
           break;
         case osgGA::GUIEventAdapter::EventType::MOVE:
           if( ea.getXnormalized() == 0 && ea.getYnormalized() == 0 ) break;
-//          std::cout << "Move event " << ea.getX() << ", " << ea.getY() << "\n";
           std::cout << "dx = " << ea.getXnormalized() << ", " << ea.getYnormalized() << "\n";
           if( mouseStick )
           {
+            controlData.jsValues[c_axisYaw] -= ea.getXnormalized();
+            controlData.jsValues[c_axisPitch] -= ea.getYnormalized();
             aa.requestWarpPointer( (ea.getXmin() + ea.getXmax())/2, (ea.getYmin() + ea.getYmax())/2 );
           }
           break;
@@ -92,26 +96,40 @@ public:
           std::cout << "Drag event " << ea.getX() << ", " << ea.getY() << "\n";
           break;
         case osgGA::GUIEventAdapter::EventType::KEYDOWN:
-          std::cout << "Key Down event " << std::hex << ea.getUnmodifiedKey() << "\n";
-          if( ea.getUnmodifiedKey() == osgGA::GUIEventAdapter::KeySymbol::KEY_Space )
+//          std::cout << "Key Down event " << std::hex << ea.getUnmodifiedKey() << "\n";
+          switch( ea.getUnmodifiedKey() )
           {
-            mouseStick = !mouseStick;
-            if( viewer != nullptr ) {
-              osgViewer::Viewer::Windows w;
-              viewer->getWindows(w);
-              for( auto win : w )
-              {
-                win->useCursor( !mouseStick );
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_Equals:
+              std::cout << "Throttle up\n";
+              controlData.jsValues[c_axisThrottle] += 0.1f;
+              if( controlData.jsValues[c_axisThrottle] > 1.0f ) controlData.jsValues[c_axisThrottle] = 1.0f;
+              break;
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_Minus:
+              std::cout << "Throttle down\n";
+              controlData.jsValues[c_axisThrottle] -= 0.1f;
+              if( controlData.jsValues[c_axisThrottle] < -1.0f ) controlData.jsValues[c_axisThrottle] = -1.0f;
+              break;
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_Space:
+              mouseStick = !mouseStick;
+              controlData.jsValues[c_axisYaw] = 0;
+              controlData.jsValues[c_axisPitch] = 0;
+              if( viewer != nullptr ) {
+                osgViewer::Viewer::Windows w;
+                viewer->getWindows(w);
+                for( auto win : w )
+                {
+                  win->useCursor( !mouseStick );
+                }
               }
-            }
-            if( mouseStick )
-            {
-              aa.requestWarpPointer( (ea.getXmin() + ea.getXmax())/2, (ea.getYmin() + ea.getYmax())/2 );
-            }
+              if( mouseStick )
+              {
+                aa.requestWarpPointer( (ea.getXmin() + ea.getXmax())/2, (ea.getYmin() + ea.getYmax())/2 );
+              }
+              break;
           }
           break;
         case osgGA::GUIEventAdapter::EventType::KEYUP:
-          std::cout << "Key Up event " << std::hex << ea.getUnmodifiedKey() << "\n";
+//          std::cout << "Key Up event " << std::hex << ea.getUnmodifiedKey() << "\n";
           break;
         case osgGA::GUIEventAdapter::EventType::SCROLL:
           std::cout << "Scroll event\n";
@@ -186,10 +204,11 @@ int main( int argc, char** argv )
     std::cout << "Start game loop\n";
     while(!viewer.done())
     {
+      ship->SetControls( evh->getControls() );
       mission.Update( Clock::now() );
 #if !MANIP
       osg::Vec3 e = mts->GetCockpit();
-      osg::Vec3 c = c + (mts->GetForward()*3);
+      osg::Vec3 c = e + (mts->GetForward()*3);
       viewer.getCamera()->setViewMatrixAsLookAt( e, c, mts->GetUp() );
 #endif
       viewer.frame();
