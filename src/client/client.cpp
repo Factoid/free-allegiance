@@ -101,12 +101,12 @@ public:
           {
             case osgGA::GUIEventAdapter::KeySymbol::KEY_Equals:
               std::cout << "Throttle up\n";
-              controlData.jsValues[c_axisThrottle] += 0.1f;
+              controlData.jsValues[c_axisThrottle] += 0.25f;
               if( controlData.jsValues[c_axisThrottle] > 1.0f ) controlData.jsValues[c_axisThrottle] = 1.0f;
               break;
             case osgGA::GUIEventAdapter::KeySymbol::KEY_Minus:
               std::cout << "Throttle down\n";
-              controlData.jsValues[c_axisThrottle] -= 0.1f;
+              controlData.jsValues[c_axisThrottle] -= 0.25f;
               if( controlData.jsValues[c_axisThrottle] < -1.0f ) controlData.jsValues[c_axisThrottle] = -1.0f;
               break;
             case osgGA::GUIEventAdapter::KeySymbol::KEY_Space:
