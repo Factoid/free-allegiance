@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\client\client.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\client\ClientIgcSite.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\Color.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\Frame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\Geo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\GroupGeo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\Image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\Light.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\LODGeo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\MeshGeo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\ModelDefinition.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\ResourceBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\ResourceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\TextureGeo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\Vector3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\client\ClientIgcSite">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\client\exceptions">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\Color">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\exceptions">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\Frame">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\Geo">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\GroupGeo">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\Image">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\Light">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\LODGeo">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\MeshGeo">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\ModelDefinition">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\ResourceBase">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\ResourceManager">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\TextureGeo">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\src\model\Vector3">
+      <Filter>Header Files</Filter>
+    </None>
+  </ItemGroup>
+</Project>

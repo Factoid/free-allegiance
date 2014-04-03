@@ -1,3 +1,7 @@
+Debug/
+Release/
+*.*sdf
+*.suo
 *.igc
 *.json
 *.csv
