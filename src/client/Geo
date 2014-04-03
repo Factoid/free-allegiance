@@ -1,0 +1,29 @@
+#ifndef __MYGEO_H__
+#define __MYGEO_H__
+
+#include <osg/MatrixTransform>
+#include <model/ResourceManager>
+
+class Geo
+{
+public:
+  Geo() 
+  {
+  }
+
+  void setModel( const std::string& mName )
+  {
+    model = osg::ref_ptr<osg::MatrixTransform>( new osg::MatrixTransform );
+    osg::ref_ptr<osg::Group> mdl = fa::ResourceManager::instance()->getModel( mName + ".json" );
+    radius = mdl->getBound().radius();
+    model->addChild( mdl );
+  }
+
+  float getRadius() { return radius; }
+
+  osg::ref_ptr<osg::MatrixTransform> model;
+private:
+  float radius;
+};
+
+#endif

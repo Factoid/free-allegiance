@@ -8,16 +8,16 @@ CFLAGS+=-std=gnu++11 -ggdb3 -O0 -fno-inline-small-functions -fmax-errors=10 -fPI
 sources = $(wildcard *.cpp)
 objects = $(sources:.cpp=.o) $(wildcard ../model/*.o)
 
-all: client
+all: client.bin
 
-client: $(objects)
+client.bin: $(objects)
 	$(CC) $(CFLAGS) $(DEP_INCLUDE) -L../../deps/alleg_src/igc/ $^ -o $@ -ligc $(PC_LIBS)
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) $(DEP_INCLUDE) -c $< -o $@
 
-install: client
-	cp client ../../
+install: client.bin
+	cp client.bin ../../
 
 clean:
-	rm client *.o
+	rm client.bin *.o

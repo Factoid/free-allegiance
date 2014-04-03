@@ -8,15 +8,15 @@ CFLAGS=-std=gnu++11 -ggdb -O0
 model_objs = $(wildcard ../model/*.o)
 objects = mdlviewer.o $(model_objs)
 
-all: mdlviewer
+all: mdlviewer.bin
 
-mdlviewer: $(objects) $(model_objs)
+mdlviewer.bin: $(objects) $(model_objs)
 	$(CC) -o $@ $^ $(PC_LIBS) 
 mdlviewer.o: mdlviewer.cpp
 	$(CC) $(CFLAGS) $(DEP_INCLUDE) -c $< -o $@
 
 clean:
-	rm mdlviewer *.o
+	rm mdlviewer.bin *.o
 
-install: mdlviewer
-	cp mdlviewer ../../
+install: mdlviewer.bin
+	cp mdlviewer.bin ../../

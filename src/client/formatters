@@ -1,0 +1,35 @@
+#ifndef __FORMATTERS_H__
+#define __FORMATTERS_H__
+
+#include <ostream>
+#include <igc/igc.h>
+
+inline std::ostream& operator<< ( std::ostream& os, const Vector& c )
+{
+  return os << "(" << c.X() << ", " << c.Y() << ", " << c.Z() << ")";
+}
+
+inline std::ostream& operator<< ( std::ostream& os, const osg::Vec3& c )
+{
+  return os << "(" << c.x() << ", " << c.y() << ", " << c.z() << ")";
+}
+
+
+inline std::ostream& operator<< ( std::ostream& os, const Color& c )
+{
+  return os << "(" << c.R() << ", " << c.G() << ", " << c.B() << ", " << c.A() << ")";
+}
+
+inline std::ostream& operator<< (std::ostream& os, const TechTreeBitMask& bm )
+{
+  for( unsigned long int i = 0; i < 400; ++i )
+  {
+    if( bm.GetBit(i) )
+    {
+      os << i << " ";
+    }
+  }
+  return os;
+}
+
+#endif

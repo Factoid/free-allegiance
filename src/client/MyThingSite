@@ -1,0 +1,103 @@
+#ifndef __MY_THING_SITE_H__
+#define __MY_THING_SITE_H__
+
+#include <osg/Vec3>
+#include "formatters"
+#include <iostream>
+
+class MyThingSite : public ThingSite
+{
+public:
+  MyThingSite( ImodelIGC* model ) : model(model) {}
+  Geo* GetGeo() { return &geo; }
+
+  HRESULT LoadAleph( const char* textureName )
+  {
+    std::cout << "ThingSite load aleph texture " << textureName << "\n";
+    geo.setModel( "aleph_sphere" );
+    return S_OK;
+  }
+  HRESULT LoadModel( int options, const char* modelName, const char* textureName )
+  {
+    std::cout << "ThingSite load model ";
+    if( modelName )
+    {
+      std::cout << " model = " << modelName;
+      geo.setModel( modelName );
+    }
+    if( textureName )
+    {
+      std::cout << " texture = " << textureName;
+    }
+    std::cout << "\n";
+    return S_OK;
+  }
+  public :osg::Vec3 GetCockpit() const
+  {
+    osg::Vec3 cp = GetPosition();
+    auto ship = dynamic_cast<IshipIGC*>(model);
+    if( ship )
+    {
+      Vector v = ship->GetHullType()->GetCockpit();
+      cp += osg::Vec3( v.X(), v.Y(), v.Z() );
+    }
+    return cp;
+  }
+
+  public :osg::Vec3 GetPosition() const
+  {
+    Vector v = tform.GetPosition();
+    return osg::Vec3( v.X(), v.Y(), v.Z() );
+  }
+  public :osg::Vec3 GetForward() const
+  {
+    Vector v = tform.GetOrientation().GetForward();
+    return osg::Vec3( v.X(), v.Y(), v.Z() );
+  }
+  public :osg::Vec3 GetUp() const
+  {
+    Vector v = tform.GetOrientation().GetUp();
+    return osg::Vec3( v.X(), v.Y(), v.Z() );
+  }
+  void SetPosition( const Vector& pos )
+  {
+    tform.SetPosition(pos);
+    UpdateMatrix();
+  }
+  void SetOrientation( const Orientation& orient )
+  {
+    tform.SetOrientation(orient);
+    UpdateMatrix();
+  }
+  void SetRadius( float r )
+  {
+    radius = r;
+  }
+  
+  Geo geo;
+  ImodelIGC* model;
+
+private:
+  void UpdateMatrix()
+  {
+    Vector v = tform.GetPosition();
+    if( geo.model )
+    {
+      float scale = radius / geo.getRadius();
+      float m[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
+      for( int i = 0; i < 3; ++i )
+      {
+        for( int j = 0; j < 3; ++j )
+        {
+          m[i*4+j] = tform.GetOrientation()[i][j];
+        }
+      }
+      geo.model->setMatrix( osg::Matrix::scale( scale, scale, scale ) * osg::Matrix( m ) * osg::Matrix::translate( v.X(), v.Y(), v.Z() ) );
+    }
+  }
+
+  Transform44 tform;
+  float radius = 1.0f;
+};
+
+#endif
