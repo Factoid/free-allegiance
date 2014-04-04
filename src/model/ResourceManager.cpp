@@ -1,5 +1,6 @@
 #include "ResourceManager"
 #include "ModelDefinition"
+#include <osg/Geometry>
 #include <osg/Vec3>
 #include <osgDB/ReadFile>
 #include <osg/MatrixTransform>
@@ -52,7 +53,7 @@ namespace fa
   osg::ref_ptr<osg::Geometry> ResourceManager::createQuad()
   {
     osg::ref_ptr<osg::Geometry> quad( new osg::Geometry );
-    osg::ref_ptr<osg::Vec3Array> quadVerts(new osg::Vec3Array);
+    osg::ref_ptr<osg::Vec3Array> quadVerts( new osg::Vec3Array );
     quadVerts->push_back( osg::Vec3(-0.5f, 0.0f, 0.5f) );
     quadVerts->push_back( osg::Vec3( 0.5f, 0.0f, 0.5f) );
     quadVerts->push_back( osg::Vec3( 0.5f, 0.0f,-0.5f) );

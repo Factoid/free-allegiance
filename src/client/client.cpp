@@ -1,3 +1,7 @@
+#ifdef _WINDOWS
+#include "windows.h"
+#endif
+
 #include <osgViewer/Viewer>
 #include <osgGA/UFOManipulator>
 #include <osgGA/TrackballManipulator>
@@ -149,11 +153,15 @@ public:
   }
 };
 
+#ifdef _WINDOWS
+int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR cmdLine, int cmdShow )
+#else
 int main( int argc, char** argv )
+#endif
 {
   try
   {
-    fa::ResourceManager::setPathBase("decompiled/");
+	fa::ResourceManager::setPathBase("decompiled/");
 
     UTL::SetArtPath( "Artwork/" );
     ClientIgcSite clientIgc;

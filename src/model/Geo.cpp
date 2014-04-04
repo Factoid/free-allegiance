@@ -9,7 +9,10 @@ namespace fa
 #endif
     }
   Geo::~Geo() {}
-  osg::ref_ptr<osg::Node> Geo::buildGraph( osg::ref_ptr<osg::Node> node ) {}
+  osg::ref_ptr<osg::Node> Geo::buildGraph( osg::ref_ptr<osg::Node> node )
+  {
+	  return nullptr;
+  }
 }
 CEREAL_REGISTER_TYPE_WITH_NAME( fa::Geo, "Geo" );
 //CEREAL_REGISTER_TYPE( Geo );
