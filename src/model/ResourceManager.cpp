@@ -42,7 +42,7 @@ namespace fa
     }
 
     osg::ref_ptr<osg::MatrixTransform> root( new osg::MatrixTransform );
-    ModelDefinition mDef;
+    ModelDefinition mDef;	
     mDef.load( pathBase + path );
     mDef.buildGraph(root.get());
     root->setMatrix( osg::Matrix::rotate( osg::Vec3( 0, 0, 1 ), osg::Vec3(0, -1, 0) ) * osg::Matrix::rotate( osg::Vec3( 0, -1, 0 ), osg::Vec3( 0, 1, 0 ) ) );

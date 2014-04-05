@@ -59,7 +59,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>osgDB.lib;osg.lib;osgGA.lib;osgViewer.lib;alleg_core.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>osgDBd.lib;osgd.lib;osgGAd.lib;osgViewerd.lib;alleg_core.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
