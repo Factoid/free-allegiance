@@ -21,7 +21,7 @@ namespace fa
     osg::ref_ptr<osg::Node> root = rootGeo->buildGraph(0);
     lod->addChild(root.get(),0,keys[0]);
 
-    for( int i = 0; i < keys.size()-1; ++i )
+    for( unsigned int i = 0; i < keys.size()-1; ++i )
     {
       osg::ref_ptr<osg::Node> node = lodGeo[keys[i]]->buildGraph(0);
       lod->addChild(node,keys[i],keys[i+1]);

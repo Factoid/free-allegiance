@@ -43,6 +43,7 @@
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>C:\Users\Adrian\Documents\Visual Studio 2013\Projects\free-allegiance\src\client;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\free-allegiance\src\;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\osg\include;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\alleg_core\zlib;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\cereal\include;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\alleg_core;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\Adrian\Documents\Visual Studio 2013\Projects\osg\lib;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\alleg_core\vc2013\alleg_core\Debug;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>C:\Program Files %28x86%29\GnuWin32\bin;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\alleg_core\vc2013\alleg_core\Debug;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\osg\bin;$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

@@ -12,7 +12,7 @@ namespace fa
   osg::ref_ptr<osg::Node> GroupGeo::buildGraph( osg::ref_ptr<osg::Node> root) {
     osg::ref_ptr<osg::Group> grp( new osg::Group );
     grp->addChild( geo_list[0]->buildGraph(0) );
-    for( int i = 0; i < geo_list.size(); ++i )
+    for( unsigned int i = 0; i < geo_list.size(); ++i )
     {
       grp->addChild(geo_list[i]->buildGraph(0));
     }

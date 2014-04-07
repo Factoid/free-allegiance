@@ -31,19 +31,27 @@ namespace fa
       try
       {
         ar( CEREAL_NVP(frame) );
-      } catch(...) {}
+      } catch(...) {
+		std::cerr << "No frame" << std::endl;
+	  }
       try
       {
         ar( CEREAL_NVP(frames) );
-      } catch(...) {}
+      } catch(...) {
+		std::cerr << "No frames" << std::endl;
+	  }
       try
       {
         ar( CEREAL_NVP(object) );
-      } catch(...) {}
+      } catch(...) {
+		std::cerr << "No object" << std::endl;
+	  }
       try
       {
         ar( CEREAL_NVP(lights) );
-      } catch(...) {}
+      } catch(...) {
+		std::cerr << "No lights\n";
+	  }
     }
 
     void save( const std::string& path ) const;
