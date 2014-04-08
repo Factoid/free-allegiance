@@ -47,7 +47,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\Adrian\Documents\Visual Studio 2013\Projects\osg\include;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\alleg_core\zlib;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\alleg_core\igc;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\Adrian\Documents\Visual Studio 2013\Projects\free-allegiance\src;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\osg\include;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\alleg_core\zlib;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\alleg_core;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\cereal\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Adrian\Documents\Visual Studio 2013\Projects\osg\lib;C:\Users\Adrian\Documents\Visual Studio 2013\Projects\alleg_core\vc2013\alleg_core\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -72,12 +73,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>osgDB.lib;osg.lib;osgGA.lib;osgViewer.lib;alleg_core.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
