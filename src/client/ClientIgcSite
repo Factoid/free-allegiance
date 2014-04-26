@@ -3,10 +3,11 @@
 
 #include <igc/igc.h>
 #include "exceptions"
+#include <osgViewer/Viewer>
 
 namespace fa
 {
-  class ClientIgcSite : public IIgcSite
+  class ClientIgcSite : public IIgcSite, public osgViewer::Viewer
   {
     virtual Time ServerTimeFromClientTime(Time   timeClient)
     {
@@ -16,217 +17,80 @@ namespace fa
     {
       return timeServer;
     }
-    void DevelopmentCompleted(IbucketIGC* b, IdevelopmentIGC* d, Time now) {
-      throw NotImplementedException();
-    }
-    void    StationTypeCompleted(IbucketIGC*  b, IstationIGC* pstation, IstationTypeIGC*   st, Time now) {
-      throw NotImplementedException();
-    }
-    void HullTypeCompleted(IsideIGC* pside, IhullTypeIGC* pht) {
-      throw NotImplementedException();
-    }
-    void PartTypeCompleted(IsideIGC* pside, IpartTypeIGC* ppt) {
-      throw NotImplementedException();
-    }
-    void DroneTypeCompleted(IbucketIGC* b, IstationIGC* pstation, IdroneTypeIGC* dt, Time now) {
-      throw NotImplementedException();
-    }
-    void BucketChangeEvent(BucketChange bc, IbucketIGC* b) {
-      throw NotImplementedException();
-    }
+    void DevelopmentCompleted(IbucketIGC* b, IdevelopmentIGC* d, Time now);
+    void StationTypeCompleted(IbucketIGC*  b, IstationIGC* pstation, IstationTypeIGC* st, Time now);
+    void HullTypeCompleted(IsideIGC* pside, IhullTypeIGC* pht);
+    void PartTypeCompleted(IsideIGC* pside, IpartTypeIGC* ppt);
+    void DroneTypeCompleted(IbucketIGC* b, IstationIGC* pstation, IdroneTypeIGC* dt, Time now);
+    void BucketChangeEvent(BucketChange bc, IbucketIGC* b);
     void SideBuildingTechChange(IsideIGC* s);
     void SideDevelopmentTechChange(IsideIGC* s);
-    void SideGlobalAttributeChange(IsideIGC* s) {
-      throw NotImplementedException();
-    }
+    void SideGlobalAttributeChange(IsideIGC* s);
     void StationTypeChange(IstationIGC* s);
     void ClusterUpdateEvent(IclusterIGC* c);
-
-    void BuildStation(IasteroidIGC* pasteroid, IsideIGC* pside, IstationTypeIGC* pstationtype, Time now, bool pbseensides[]) { //Imago #120 #121 8/10
-      throw NotImplementedException();
-    }
+    void BuildStation(IasteroidIGC* pasteroid, IsideIGC* pside, IstationTypeIGC* pstationtype, Time now, bool pbseensides[]);
     TRef<ThingSite> CreateThingSite(ImodelIGC* pModel);
     TRef<ClusterSite> CreateClusterSite(IclusterIGC* pCluster);
-    void ReceiveChat(IshipIGC* pshipSender, ChatTarget ctRecipient, ObjectID oidRecipient, SoundID voiceOver, const char* szText, CommandID cid, ObjectType otTarget, ObjectID oidTarget, ImodelIGC* pmodelTarget = NULL) {
-      throw NotImplementedException();
-    }
-    void SendChat(IshipIGC* pshipSender, ChatTarget chatTarget, ObjectID oidRecipient, SoundID soVoiceOver, const char* szText, CommandID cid = c_cidNone, ObjectType otTarget = NA, ObjectID oidTarget = NA, ImodelIGC* pmodelTarget = NULL, bool bObjectModel = false) {
-      throw NotImplementedException();
-    }
-    void SendChatf(IshipIGC* pshipSender, ChatTarget ctRecipient, ObjectID oidRecipient, SoundID soVoiceOver, const char* pszText, ...) {
-      const int c_cbBfr = 256;
-      char szChatBfr[c_cbBfr];
-
-      va_list vl;
-      va_start(vl, pszText);
-      _vsnprintf(szChatBfr, c_cbBfr, pszText, vl);
-      va_end(vl);
-
-      SendChat(pshipSender, ctRecipient, oidRecipient, soVoiceOver, szChatBfr);
-    }
-    void GetMoneyRequest(IshipIGC*  pshipSender, Money amount, HullID hidFor) {
-      throw NotImplementedException();
-    }
-    void PlaySoundEffect(SoundID soundID, ImodelIGC* model = NULL) {
-      throw NotImplementedException();
-    }
-    void PlaySoundEffect(SoundID soundID, ImodelIGC* model, const Vector& vectOffset) {
-      throw NotImplementedException();
-    }
-    void PlayNotificationSound(SoundID soundID, ImodelIGC* model){
-      throw NotImplementedException();
-    }
-    void PlayFFEffect(ForceEffectID effectID, ImodelIGC* model = NULL, LONG lDirection = 0){
-      throw NotImplementedException();
-    }
-    void PlayVisualEffect(VisualEffectID effectID, ImodelIGC* model = NULL, float fIntensity = 1.0f){
-      throw NotImplementedException();
-    }
-    int  MessageBox(const ZString& strText, const ZString& strCaption, UINT nType) {
-      throw NotImplementedException();
-    }
-    void TerminateModelEvent(ImodelIGC* model){
-      throw NotImplementedException();
-    }
-    void TerminateMissionEvent(ImissionIGC* pMission){
-      throw NotImplementedException();
-    }
-    void KillAsteroidEvent(IasteroidIGC* pasteroid, bool explodeF) {
-      throw NotImplementedException();
-    }
-    void KillAsteroidEvent(AsteroidID roid, SectorID soid, IsideIGC* side) { //Imago #120 #121 8/10
-      throw NotImplementedException();
-    }
-    void DrainAsteroidEvent(IasteroidIGC* pasteroid) {
-      throw NotImplementedException();
-    }
-    void MineAsteroidEvent(IasteroidIGC* pasteroid, float newOre) {  //Xynth #132 7/2010
-      throw NotImplementedException();
-    }
-    void KillProbeEvent(IprobeIGC* pprobe) {
-      throw NotImplementedException();
-    }
-    void KillMissileEvent(ImissileIGC* pmissile, const Vector& position) {
-      throw NotImplementedException();
-    }
-    void KillBuildingEffectEvent(IbuildingEffectIGC* pbe) {
-      throw NotImplementedException();
-    }
-    void KillMineEvent(ImineIGC* pmine) {
-      throw NotImplementedException();
-    }
-    void KillTreasureEvent(ItreasureIGC* ptreasure) { 
-      throw NotImplementedException();
-    }
-    void PostText(bool bCritical, const char* pszText, ...) {
-      throw NotImplementedException();
-    }
-    void PostNotificationText(ImodelIGC* pmodel, bool bCritical, const char* pszText, ...) {
-      throw NotImplementedException();
-    }
-    void EjectPlayer(ImodelIGC* pmodelCredit) {
-      throw NotImplementedException();
-    }
-    void TargetKilled(ImodelIGC* pmodel) {
-      throw NotImplementedException();
-    }
-    void ShipWarped(IshipIGC* pship, SectorID sidOld, SectorID sidNew) {
-      throw NotImplementedException();
-    }
-    void DamageShipEvent(Time now, IshipIGC* ship, ImodelIGC* launcher, DamageTypeID type, float amount, float leakage, const Vector& p1, const Vector& p2) {
-      throw NotImplementedException();
-    }
-    void KillShipEvent(Time now, IshipIGC* ship, ImodelIGC* launcher, float amount, const Vector& p1, const Vector& p2){
-      throw NotImplementedException();
-    }
-    void DamageStationEvent(IstationIGC* station, ImodelIGC* launcher, DamageTypeID type, float amount){
-      throw NotImplementedException();
-    }
-    void KillStationEvent(IstationIGC* station, ImodelIGC* launcher, float amount){
-      throw NotImplementedException();
-    }
-    bool DockWithStationEvent(IshipIGC* ship, IstationIGC* station){
-      throw NotImplementedException();
-    }
-    void CaptureStationEvent(IshipIGC* ship, IstationIGC* station){
-      throw NotImplementedException();
-    }
-    bool LandOnCarrierEvent(IshipIGC* shipCarrier, IshipIGC* ship, float tCollision){
-      throw NotImplementedException();
-    }
-    bool RescueShipEvent(IshipIGC* shipRescued, IshipIGC* shipRescuer){
-      throw NotImplementedException();
-    }
-    void WarpBombEvent(IwarpIGC* pwap, ImissileIGC* pmissile) {
-      throw NotImplementedException();
-    }
-    void HitWarpEvent(IshipIGC* ship, IwarpIGC* warp){
-      throw NotImplementedException();
-    }
-    bool HitTreasureEvent(Time now, IshipIGC* ship, ItreasureIGC* treasure){ 
-      throw NotImplementedException();
-    }
-    void PaydayEvent(IsideIGC* pside, float money){
-      throw NotImplementedException();
-    }
-    void RequestRipcord(IshipIGC* ship, IclusterIGC* pcluster){
-      throw NotImplementedException();
-    }
-    bool ContinueRipcord(IshipIGC* ship, ImodelIGC* pmodel) { 
-      throw NotImplementedException();
-    }
-    bool UseRipcord(IshipIGC* ship, ImodelIGC* pmodel){ 
-      throw NotImplementedException();
-    }
-    void FireMissile(IshipIGC* pship, ImagazineIGC* pmagazine, Time timeFired, ImodelIGC* pTarget, float lock){
-      throw NotImplementedException();
-    }
-    void FireExpendable(IshipIGC* pship, IdispenserIGC* pdispenser, Time timeFired){
-      throw NotImplementedException();
-    }
-    void *GetDroneFromShip(IshipIGC * pship){ // return value is really a Drone*
-      throw NotImplementedException();
-    }
+    void ReceiveChat(IshipIGC* pshipSender, ChatTarget ctRecipient, ObjectID oidRecipient, SoundID voiceOver, const char* szText, CommandID cid, ObjectType otTarget, ObjectID oidTarget, ImodelIGC* pmodelTarget = NULL);
+    void SendChat(IshipIGC* pshipSender, ChatTarget chatTarget, ObjectID oidRecipient, SoundID soVoiceOver, const char* szText, CommandID cid = c_cidNone, ObjectType otTarget = NA, ObjectID oidTarget = NA, ImodelIGC* pmodelTarget = NULL, bool bObjectModel = false);
+    void SendChatf(IshipIGC* pshipSender, ChatTarget ctRecipient, ObjectID oidRecipient, SoundID soVoiceOver, const char* pszText, ...);
+    void GetMoneyRequest(IshipIGC*  pshipSender, Money amount, HullID hidFor);
+    void PlaySoundEffect(SoundID soundID, ImodelIGC* model = NULL);
+    void PlaySoundEffect(SoundID soundID, ImodelIGC* model, const Vector& vectOffset);
+    void PlayNotificationSound(SoundID soundID, ImodelIGC* model);
+    void PlayFFEffect(ForceEffectID effectID, ImodelIGC* model = NULL, LONG lDirection = 0);
+    void PlayVisualEffect(VisualEffectID effectID, ImodelIGC* model = NULL, float fIntensity = 1.0f);
+    int  MessageBox(const ZString& strText, const ZString& strCaption, UINT nType);
+    void TerminateModelEvent(ImodelIGC* model);
+    void TerminateMissionEvent(ImissionIGC* pMission);
+    void KillAsteroidEvent(IasteroidIGC* pasteroid, bool explodeF);
+    void KillAsteroidEvent(AsteroidID roid, SectorID soid, IsideIGC* side);
+    void DrainAsteroidEvent(IasteroidIGC* pasteroid);
+    void MineAsteroidEvent(IasteroidIGC* pasteroid, float newOre);
+    void KillProbeEvent(IprobeIGC* pprobe);
+    void KillMissileEvent(ImissileIGC* pmissile, const Vector& position);
+    void KillBuildingEffectEvent(IbuildingEffectIGC* pbe);
+    void KillMineEvent(ImineIGC* pmine);
+    void KillTreasureEvent(ItreasureIGC* ptreasure);
+    void PostText(bool bCritical, const char* pszText, ...);
+    void PostNotificationText(ImodelIGC* pmodel, bool bCritical, const char* pszText, ...);
+    void EjectPlayer(ImodelIGC* pmodelCredit);
+    void TargetKilled(ImodelIGC* pmodel);
+    void ShipWarped(IshipIGC* pship, SectorID sidOld, SectorID sidNew);
+    void DamageShipEvent(Time now, IshipIGC* ship, ImodelIGC* launcher, DamageTypeID type, float amount, float leakage, const Vector& p1, const Vector& p2);
+    void KillShipEvent(Time now, IshipIGC* ship, ImodelIGC* launcher, float amount, const Vector& p1, const Vector& p2);
+    void DamageStationEvent(IstationIGC* station, ImodelIGC* launcher, DamageTypeID type, float amount);
+    void KillStationEvent(IstationIGC* station, ImodelIGC* launcher, float amount);
+    bool DockWithStationEvent(IshipIGC* ship, IstationIGC* station);
+    void CaptureStationEvent(IshipIGC* ship, IstationIGC* station);
+    bool LandOnCarrierEvent(IshipIGC* shipCarrier, IshipIGC* ship, float tCollision);
+    bool RescueShipEvent(IshipIGC* shipRescued, IshipIGC* shipRescuer);
+    void WarpBombEvent(IwarpIGC* pwap, ImissileIGC* pmissile);
+    void HitWarpEvent(IshipIGC* ship, IwarpIGC* warp);
+    bool HitTreasureEvent(Time now, IshipIGC* ship, ItreasureIGC* treasure);
+    void PaydayEvent(IsideIGC* pside, float money);
+    void RequestRipcord(IshipIGC* ship, IclusterIGC* pcluster);
+    bool ContinueRipcord(IshipIGC* ship, ImodelIGC* pmodel);
+    bool UseRipcord(IshipIGC* ship, ImodelIGC* pmodel);
+    void FireMissile(IshipIGC* pship, ImagazineIGC* pmagazine, Time timeFired, ImodelIGC* pTarget, float lock);
+    void FireExpendable(IshipIGC* pship, IdispenserIGC* pdispenser, Time timeFired);
+    void *GetDroneFromShip(IshipIGC * pship);
     void CreateSideEvent(IsideIGC * pIsideIGC);
-    void DestroySideEvent(IsideIGC * pIsideIGC) {
-      throw NotImplementedException();
-    }
-    void ChangeStation(IshipIGC* pship, IstationIGC* pstationOld, IstationIGC* pstationNew) {    //changing clusters
-      throw NotImplementedException();
-    }
+    void DestroySideEvent(IsideIGC * pIsideIGC);
+    void ChangeStation(IshipIGC* pship, IstationIGC* pstationOld, IstationIGC* pstationNew);
     void ChangeCluster(IshipIGC* pship, IclusterIGC* pclusterOld, IclusterIGC* pclusterNew);
-    
-    void CommandChangedEvent(Command i, IshipIGC * pship, ImodelIGC* ptarget, CommandID cid) {
-      throw NotImplementedException();
-    }
+    void CommandChangedEvent(Command i, IshipIGC * pship, ImodelIGC* ptarget, CommandID cid);
     void Preload(const char* pszModelName, const char* pszFileName);
-    void ActivateTeleportProbe(IprobeIGC* pprobe) {
-      throw NotImplementedException();
-    }
-    void DestroyTeleportProbe(IprobeIGC* pprobe) {
-      throw NotImplementedException();
-    }
+    void ActivateTeleportProbe(IprobeIGC* pprobe);
+    void DestroyTeleportProbe(IprobeIGC* pprobe);
     void LoadoutChangeEvent(IshipIGC* pship, IpartIGC* ppart, LoadoutChange lc);
-
     IObject* LoadRadarIcon(const char* szName);
-    void ChangeGameState(void) {
-      throw NotImplementedException();
-    }
-    void CreateBuildingEffect(Time now, IasteroidIGC* pasteroid, IshipIGC* pshipBuilder) {
-      throw NotImplementedException();
-    }
-    void LayExpendable( Time now, IexpendableTypeIGC* pet, IshipIGC* pshipLayer) {
-      throw NotImplementedException();
-    }
-    IclusterIGC* GetCluster(IshipIGC* pship, ImodelIGC* pmodel) {
-      throw NotImplementedException();
-    }
-    IclusterIGC* GetRipcordCluster(IshipIGC* pship, HullAbilityBitMask habm = c_habmIsRipcordTarget) {
-      throw NotImplementedException();
-    }
-    bool Reload(IshipIGC* pship, IlauncherIGC* plauncher, EquipmentType type) {
-      throw NotImplementedException();
-    }
+    void ChangeGameState(void);
+    void CreateBuildingEffect(Time now, IasteroidIGC* pasteroid, IshipIGC* pshipBuilder);
+    void LayExpendable( Time now, IexpendableTypeIGC* pet, IshipIGC* pshipLayer);
+    IclusterIGC* GetCluster(IshipIGC* pship, ImodelIGC* pmodel);
+    IclusterIGC* GetRipcordCluster(IshipIGC* pship, HullAbilityBitMask habm = c_habmIsRipcordTarget);
+    bool Reload(IshipIGC* pship, IlauncherIGC* plauncher, EquipmentType type);
   };
 }
 

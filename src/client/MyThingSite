@@ -17,6 +17,12 @@ public:
     geo.setModel( "aleph_sphere" );
     return S_OK;
   }
+  HRESULT LoadDecal( const char* textureName, bool bDirectional, float width )
+  {
+    std::cout << "ThingSite load decal " << textureName << " dir " << bDirectional << " width " << width << "\n";
+    geo.setDecal( textureName );
+    return S_OK;
+  }
   HRESULT LoadModel( int options, const char* modelName, const char* textureName )
   {
     std::cout << "ThingSite load model ";
@@ -78,6 +84,7 @@ public:
   ImodelIGC* model;
 
 private:
+
   void UpdateMatrix()
   {
     Vector v = tform.GetPosition();

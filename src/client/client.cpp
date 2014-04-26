@@ -16,24 +16,9 @@
 #include "Geo"
 #include "formatters"
 #include "MyThingSite"
+#include "MyClusterSite"
 
 using namespace fa;
-
-osg::ref_ptr<osg::Group> createCluster( IclusterIGC* cluster )
-{
-  auto root = osg::ref_ptr<osg::Group>( new osg::Group );
-  for( auto m : *cluster->GetModels() )
-  {
-    ThingSite* tSite = m->GetThingSite();
-    Geo* geo = tSite->GetGeo();
-    std::cout << "Getting Model " << m->GetName() << " " << tSite << " " << geo << "\n";
-    if( geo->model )
-    {
-      root->addChild( geo->model );
-    }
-  }
-  return root;
-}
 
 IshipIGC* launchShip( ImissionIGC& mission )
 {
@@ -51,6 +36,19 @@ IshipIGC* launchShip( ImissionIGC& mission )
   shipData.baseObjectID = NA;
 
   IshipIGC* ship = (IshipIGC*)mission.CreateObject(mission.GetLastUpdate(),OT_ship,&shipData,sizeof(shipData));
+  const PartTypeListIGC* plist = ship->GetHullType()->GetPreferredPartTypes();
+  for( auto part : *plist )
+  {
+    std::cout << "Part name " << part->GetName() << ", type " << part->GetEquipmentType() << "\n";
+    switch( part->GetEquipmentType() )
+    {
+      case ET_Weapon:
+        IpartIGC* p = ship->CreateAndAddPart(part,0,0);
+        p->Arm();
+        break;
+    }
+  }
+
   IstationIGC* station = side0->GetStation(0);
   station->RepairAndRefuel(ship);
   station->Launch(ship);
@@ -60,13 +58,18 @@ IshipIGC* launchShip( ImissionIGC& mission )
   return ship;
 }
 
+bool chase = false;
+CmissionIGC mission;
+
 class MyEventHandler : public osgGA::GUIEventHandler
 {
 private:
   bool mouseStick = false;
   ControlData controlData;
+  bool m_fire = false;
 
 public:
+  const bool fire() const { return m_fire; }
   const ControlData& getControls() const { return controlData; }
 
   osgViewer::Viewer* viewer;
@@ -82,13 +85,15 @@ public:
       {
         case osgGA::GUIEventAdapter::EventType::PUSH:
           std::cout << "Push event " << ea.getButtonMask() << "\n";
+          m_fire = (ea.getButtonMask() & 1) != 0;
           break;
         case osgGA::GUIEventAdapter::EventType::RELEASE:
           std::cout << "Release event " << ea.getButtonMask() << "\n";
+          m_fire = (ea.getButtonMask() & 1) != 0;
           break;
+        case osgGA::GUIEventAdapter::EventType::DRAG:
         case osgGA::GUIEventAdapter::EventType::MOVE:
           if( ea.getXnormalized() == 0 && ea.getYnormalized() == 0 ) break;
-          std::cout << "dx = " << ea.getXnormalized() << ", " << ea.getYnormalized() << "\n";
           if( mouseStick )
           {
             controlData.jsValues[c_axisYaw] -= ea.getXnormalized();
@@ -96,13 +101,19 @@ public:
             aa.requestWarpPointer( (ea.getXmin() + ea.getXmax())/2, (ea.getYmin() + ea.getYmax())/2 );
           }
           break;
-        case osgGA::GUIEventAdapter::EventType::DRAG:
-          std::cout << "Drag event " << ea.getX() << ", " << ea.getY() << "\n";
-          break;
         case osgGA::GUIEventAdapter::EventType::KEYDOWN:
-//          std::cout << "Key Down event " << std::hex << ea.getUnmodifiedKey() << "\n";
           switch( ea.getUnmodifiedKey() )
           {
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_C:
+              chase = !chase;
+              break;
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_S:
+              for( auto s : *mission.GetShips() )
+              {
+                std::cout << "Ship " << s->GetObjectID() << " - " << s->GetName() << " - " << s->GetHullType()->GetObjectID() << "\n";
+                std::cout << "  " << s->GetHullType()->GetCockpit() << ", " << s->GetPosition() << "\n";
+              }
+              break;
             case osgGA::GUIEventAdapter::KeySymbol::KEY_Equals:
               std::cout << "Throttle up\n";
               controlData.jsValues[c_axisThrottle] += 0.25f;
@@ -133,13 +144,10 @@ public:
           }
           break;
         case osgGA::GUIEventAdapter::EventType::KEYUP:
-//          std::cout << "Key Up event " << std::hex << ea.getUnmodifiedKey() << "\n";
           break;
         case osgGA::GUIEventAdapter::EventType::SCROLL:
-          std::cout << "Scroll event\n";
           break;
         case osgGA::GUIEventAdapter::EventType::RESIZE:
-          std::cout << "Resize event\n";
           break;
         case osgGA::GUIEventAdapter::EventType::FRAME:
           break;
@@ -161,11 +169,10 @@ int main( int argc, char** argv )
 {
   try
   {
-	fa::ResourceManager::setPathBase("decompiled/");
+	  fa::ResourceManager::setPathBase("decompiled/");
 
     UTL::SetArtPath( "Artwork/" );
     ClientIgcSite clientIgc;
-    CmissionIGC mission;
     Time start = Clock::now();
 
     mission.Initialize( start, &clientIgc );
@@ -184,7 +191,7 @@ int main( int argc, char** argv )
     mission.EnterGame();
     mission.SetMissionStage(STAGE_STARTED); 
 
-    osgViewer::Viewer viewer;
+    osgViewer::Viewer& viewer = clientIgc;
     osg::ref_ptr<MyEventHandler> evh( new MyEventHandler );
     evh->viewer = &viewer;
     viewer.addEventHandler( evh );
@@ -199,11 +206,14 @@ int main( int argc, char** argv )
     launchShip( mission );
 #else
     IshipIGC* ship = launchShip( mission );
+    auto id = ship->GetObjectID();
     MyThingSite* mts = dynamic_cast<MyThingSite*>(ship->GetThingSite());
+    MyClusterSite* mcs = dynamic_cast<MyClusterSite*>(ship->GetCluster()->GetClusterSite());
+    mcs->SetViewer(viewer);
 #endif
-    std::cout << "Create cluster\n";
-    osg::ref_ptr<osg::Group> root = createCluster( mission.GetSide(0)->GetStation(0)->GetCluster() ); 
-    viewer.setSceneData(root);
+//    std::cout << "Create cluster\n";
+//    osg::ref_ptr<osg::Group> root = createCluster( mission.GetSide(0)->GetStation(0)->GetCluster() ); 
+//    viewer.setSceneData(root);
 
 #if MANIP
     osg::ref_ptr<osgGA::TrackballManipulator> cManip( new osgGA::TrackballManipulator );
@@ -213,10 +223,29 @@ int main( int argc, char** argv )
     while(!viewer.done())
     {
       ship->SetControls( evh->getControls() );
+      for( auto part : *ship->GetParts() )
+      {
+        if( part->GetEquipmentType() == ET_Weapon )
+        {
+          if( evh->fire() )
+          {
+            part->Activate();
+          } else
+          {
+            part->Deactivate();
+          }
+        }
+      }
       mission.Update( Clock::now() );
 #if !MANIP
+      ship = mission.GetShip(id);
+      mts = dynamic_cast<MyThingSite*>(ship->GetThingSite());
       osg::Vec3 e = mts->GetCockpit();
       osg::Vec3 c = e + (mts->GetForward()*3);
+      if( chase )
+      {
+        e += (mts->GetForward()*-20) + (mts->GetUp()*5);
+      }
       viewer.getCamera()->setViewMatrixAsLookAt( e, c, mts->GetUp() );
 #endif
       viewer.frame();

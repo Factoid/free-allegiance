@@ -1,0 +1,37 @@
+#ifndef __MY_CLUSTER_SITE_H__
+#define __MY_CLUSTER_SITE_H__
+
+class MyClusterSite : public ClusterSite
+{
+public:
+  MyClusterSite( IclusterIGC* cluster ) : cluster(cluster), root(new osg::Group) {}
+  void AddThingSite( ThingSite* ts )
+  {
+    std::cout << "Adding thing site " << ts << " to cluster " << this << "\n";
+    Geo* geo = ts->GetGeo();
+    if( geo->model )
+    {
+      root->addChild( geo->model );
+    }
+  }
+
+  void DeleteThingSite( ThingSite* ts )
+  {
+    std::cout << "Removing thing site " << ts << " from cluster " << this << "\n";
+    Geo* geo = ts->GetGeo();
+    if( geo->model )
+    {
+      root->removeChild( geo->model );
+    }
+  }
+
+  void SetViewer( osgViewer::Viewer& viewer )
+  {
+    viewer.setSceneData(root);
+  }
+private:
+  IclusterIGC* cluster;
+  osg::ref_ptr<osg::Group> root;
+};
+
+#endif
