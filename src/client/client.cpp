@@ -20,23 +20,25 @@
 
 using namespace fa;
 
-IshipIGC* launchShip( ImissionIGC& mission )
+IshipIGC* launchShip( ImissionIGC& mission, IsideIGC* side, int hullID, PilotType pt, const std::string& name )
 {
-  IsideIGC* side0 = mission.GetSide(0);
+  std::cout << "Launching ship " << name << "\n";  
   DataShipIGC shipData;
   shipData.shipID = mission.GenerateNewShipID();
-  shipData.hullID = 210; // The Factoid scout
-  shipData.sideID = side0->GetObjectID();
+  shipData.hullID = hullID;
+  shipData.sideID = side->GetObjectID();
   shipData.nKills = 0;
   shipData.nDeaths = 0;
-  shipData.pilotType = c_ptPlayer;
+  shipData.pilotType = pt;
   shipData.nEjections = 0;
-  strcpy(shipData.name,"Factoid");
+  strcpy(shipData.name,name.c_str());
   shipData.nParts = 0;
   shipData.baseObjectID = NA;
 
+  std::cout << "Create ship\n";
   IshipIGC* ship = (IshipIGC*)mission.CreateObject(mission.GetLastUpdate(),OT_ship,&shipData,sizeof(shipData));
   const PartTypeListIGC* plist = ship->GetHullType()->GetPreferredPartTypes();
+  std::cout << "Add parts\n";
   for( auto part : *plist )
   {
     std::cout << "Part name " << part->GetName() << ", type " << part->GetEquipmentType() << "\n";
@@ -49,11 +51,13 @@ IshipIGC* launchShip( ImissionIGC& mission )
     }
   }
 
-  IstationIGC* station = side0->GetStation(0);
+  std::cout << "Getting station\n";
+  IstationIGC* station = side->GetStations()->front();
   station->RepairAndRefuel(ship);
   station->Launch(ship);
+  std::cout << "Setting controls\n";
   ControlData cd;
-  cd.jsValues[c_axisThrottle] = 1.0f;
+  cd.jsValues[c_axisThrottle] = -1.0f;
   ship->SetControls(cd);
   return ship;
 }
@@ -182,6 +186,7 @@ int main( int argc, char** argv )
     mp.strGameName = std::string("Flight Test");
     mp.nTeams = 2;
     mp.rgCivID = { 18, 18 };
+    mp.mmMapType = c_mmBrawl;
     mission.SetMissionParams( &mp ); 
 
     const char sideNames[c_cSidesMax][c_cbSideName] = { "Team 1", "Team 2" };
@@ -205,11 +210,15 @@ int main( int argc, char** argv )
 #if MANIP
     launchShip( mission );
 #else
-    IshipIGC* ship = launchShip( mission );
+    IsideIGC* side0 = mission.GetSide(0);
+    IshipIGC* ship = launchShip( mission, side0, 210, c_ptPlayer, "Factoid" );
     auto id = ship->GetObjectID();
     MyThingSite* mts = dynamic_cast<MyThingSite*>(ship->GetThingSite());
     MyClusterSite* mcs = dynamic_cast<MyClusterSite*>(ship->GetCluster()->GetClusterSite());
     mcs->SetViewer(viewer);
+
+    IsideIGC* side1 = mission.GetSide(1);
+    launchShip( mission, side1, 210, c_ptPlayer, "Factoid2" );
 #endif
 //    std::cout << "Create cluster\n";
 //    osg::ref_ptr<osg::Group> root = createCluster( mission.GetSide(0)->GetStation(0)->GetCluster() ); 

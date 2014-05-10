@@ -14,4 +14,4 @@ all: $(objects)
 	$(CC) $(CFLAGS) $(DEP_INCLUDE) -c $< -o $@
 
 clean:
-	rm libmodel.a *.o
+	rm *.o
