@@ -229,6 +229,28 @@ namespace fa
     std::cout << "Kill ship " << ship << " amount " << amount << "\n";
     //IshipIGC* credit;
     ship->Kill(now,nullptr,amount,position,p2);
+    if( ship->GetStation() )
+    {
+      std::cout << "Relaunching destroyed ship\n";
+      ship->SetBaseHullType(ship->GetMission()->GetHullType(210)); // New scout
+
+  const PartTypeListIGC* plist = ship->GetHullType()->GetPreferredPartTypes();
+  std::cout << "Add parts\n";
+  for( auto part : *plist )
+  {
+    std::cout << "Part name " << part->GetName() << ", type " << part->GetEquipmentType() << "\n";
+    switch( part->GetEquipmentType() )
+    {
+      case ET_Weapon:
+        IpartIGC* p = ship->CreateAndAddPart(part,0,0);
+        p->Arm();
+        break;
+    }
+  }
+
+      ship->GetStation()->RepairAndRefuel(ship);
+      ship->GetStation()->Launch(ship);
+    }
   }
 
   void ClientIgcSite::DamageStationEvent(IstationIGC* station, ImodelIGC* launcher, DamageTypeID type, float amount)
