@@ -266,6 +266,24 @@ namespace fa
   bool ClientIgcSite::DockWithStationEvent(IshipIGC* ship, IstationIGC* station)
   {
     std::cout << "Dock with station " << ship << " at " << station << "\n";
+    ship->SetBaseHullType(ship->GetMission()->GetHullType(210)); // New scout
+
+    const PartTypeListIGC* plist = ship->GetHullType()->GetPreferredPartTypes();
+    std::cout << "Add parts\n";
+    for( auto part : *plist )
+    {
+      std::cout << "Part name " << part->GetName() << ", type " << part->GetEquipmentType() << "\n";
+      switch( part->GetEquipmentType() )
+      {
+        case ET_Weapon:
+          IpartIGC* p = ship->CreateAndAddPart(part,0,0);
+          p->Arm();
+          break;
+      }
+    }
+
+    station->RepairAndRefuel(ship);
+    station->Launch(ship);
     return true;
   }
 
