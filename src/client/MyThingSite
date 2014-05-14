@@ -19,7 +19,7 @@ public:
   }
   HRESULT LoadDecal( const char* textureName, bool bDirectional, float width )
   {
-    std::cout << "ThingSite load decal " << textureName << " dir " << bDirectional << " width " << width << "\n";
+//    std::cout << "ThingSite load decal " << textureName << " dir " << bDirectional << " width " << width << "\n";
     geo.setDecal( textureName );
     return S_OK;
   }
@@ -79,7 +79,53 @@ public:
   {
     radius = r;
   }
-  
+  void UpdateSideVisibility( ImodelIGC* pmodel, IclusterIGC* pcluster )
+  {
+    //std::cout << "Model = " << pmodel->GetName() << ", cluster = " << pcluster->GetName() << "\n";
+    for( auto m : *pcluster->GetShips() )
+    {
+      if( m->CanSee(pmodel) )
+      {
+        pmodel->SetSideVisibility( m->GetSide(), true );
+        if( m->GetSide() != pmodel->GetSide() )
+        {
+//          m->PickDefaultOrder(pcluster,m->GetPosition(),false);
+        }
+      }
+    }
+    for( auto m : *pcluster->GetStations() )
+    {
+      if( m->CanSee(pmodel) )
+      {
+        pmodel->SetSideVisibility( m->GetSide(), true );
+      }
+    }
+    for( auto m : *pcluster->GetProbes() )
+    {
+      if( m->CanSee(pmodel) )
+      {
+        pmodel->SetSideVisibility( m->GetSide(), true );
+      }
+    }
+  }
+  void SetVisible( unsigned char c )
+  {
+    std::cout << "Set Visible = " << c << "\n";
+  }
+  void SetSideVisibility( IsideIGC* side, bool visible )
+  {
+//    std::cout << "Set Side Visibility = " << side->GetName() << " v = " << visible << "\n";
+  }
+  bool GetSideVisibility( IsideIGC* side )
+  {
+    return true;
+  }
+
+  void UpdateSeenBySide()
+  {
+    std::cout << "Update seen by side\n";
+  }
+
   Geo geo;
   ImodelIGC* model;
 

@@ -59,6 +59,8 @@ IshipIGC* launchShip( ImissionIGC& mission, IsideIGC* side, int hullID, PilotTyp
   ControlData cd;
   cd.jsValues[c_axisThrottle] = -1.0f;
   ship->SetControls(cd);
+//          m->PickDefaultOrder(pcluster,m->GetPosition(),false);
+  ship->PickDefaultOrder(nullptr,ship->GetPosition(),false);
   return ship;
 }
 
@@ -88,11 +90,11 @@ public:
       switch( e )
       {
         case osgGA::GUIEventAdapter::EventType::PUSH:
-          std::cout << "Push event " << ea.getButtonMask() << "\n";
+//          std::cout << "Push event " << ea.getButtonMask() << "\n";
           m_fire = (ea.getButtonMask() & 1) != 0;
           break;
         case osgGA::GUIEventAdapter::EventType::RELEASE:
-          std::cout << "Release event " << ea.getButtonMask() << "\n";
+//          std::cout << "Release event " << ea.getButtonMask() << "\n";
           m_fire = (ea.getButtonMask() & 1) != 0;
           break;
         case osgGA::GUIEventAdapter::EventType::DRAG:
@@ -119,12 +121,12 @@ public:
               }
               break;
             case osgGA::GUIEventAdapter::KeySymbol::KEY_Equals:
-              std::cout << "Throttle up\n";
+//              std::cout << "Throttle up\n";
               controlData.jsValues[c_axisThrottle] += 0.25f;
               if( controlData.jsValues[c_axisThrottle] > 1.0f ) controlData.jsValues[c_axisThrottle] = 1.0f;
               break;
             case osgGA::GUIEventAdapter::KeySymbol::KEY_Minus:
-              std::cout << "Throttle down\n";
+//              std::cout << "Throttle down\n";
               controlData.jsValues[c_axisThrottle] -= 0.25f;
               if( controlData.jsValues[c_axisThrottle] < -1.0f ) controlData.jsValues[c_axisThrottle] = -1.0f;
               break;
@@ -218,7 +220,7 @@ int main( int argc, char** argv )
     mcs->SetViewer(viewer);
 
     IsideIGC* side1 = mission.GetSide(1);
-    launchShip( mission, side1, 210, c_ptPlayer, "Factoid2" );
+    launchShip( mission, side1, 210, c_ptWingman, "Factoid2" );
 #endif
 //    std::cout << "Create cluster\n";
 //    osg::ref_ptr<osg::Group> root = createCluster( mission.GetSide(0)->GetStation(0)->GetCluster() ); 

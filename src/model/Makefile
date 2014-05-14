@@ -1,5 +1,5 @@
 DEP_INCLUDE+=-I../../deps/cereal/include
-CC=g++
+#CC=g++
 CFLAGS+=-std=gnu++11 -ggdb3 -O0 -fpic
 
 sources = $(wildcard *.cpp)

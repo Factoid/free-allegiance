@@ -7,7 +7,7 @@ public:
   MyClusterSite( IclusterIGC* cluster ) : cluster(cluster), root(new osg::Group) {}
   void AddThingSite( ThingSite* ts )
   {
-    std::cout << "Adding thing site " << ts << " to cluster " << this << "\n";
+//    std::cout << "Adding thing site " << ts << " to cluster " << this << "\n";
     Geo* geo = ts->GetGeo();
     if( geo->model )
     {
@@ -17,7 +17,7 @@ public:
 
   void DeleteThingSite( ThingSite* ts )
   {
-    std::cout << "Removing thing site " << ts << " from cluster " << this << "\n";
+//    std::cout << "Removing thing site " << ts << " from cluster " << this << "\n";
     Geo* geo = ts->GetGeo();
     if( geo->model )
     {

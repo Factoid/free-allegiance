@@ -62,6 +62,7 @@ namespace fa
 
   void ClientIgcSite::ClusterUpdateEvent( IclusterIGC* c )
   {
+    //std::cout << "Cluster update event " << c->GetName() << "\n";
   }
 
   void ClientIgcSite::BuildStation(IasteroidIGC* pasteroid, IsideIGC* pside, IstationTypeIGC* pstationtype, Time now, bool pbseensides[])
@@ -71,7 +72,7 @@ namespace fa
 
   std::shared_ptr<ThingSite> ClientIgcSite::CreateThingSite(ImodelIGC* pModel)
   {
-    std::cout << "Creating thing site for model " << pModel->GetName() << "\n";
+//    std::cout << "Creating thing site for model " << pModel->GetName() << "\n";
     return std::shared_ptr<ThingSite>( new MyThingSite(pModel) );
   }
 
@@ -88,7 +89,7 @@ namespace fa
 
   void ClientIgcSite::SendChat(IshipIGC* pshipSender, ChatTarget chatTarget, ObjectID oidRecipient, SoundID soVoiceOver, const char* szText, CommandID cid, ObjectType otTarget, ObjectID oidTarget, ImodelIGC* pmodelTarget, bool bObjectModel)
   {
-    std::cout << "Send chat\n";
+    std::cout << "Send chat : " << szText << " cmd " << cid << "\n";
   }
 
   void ClientIgcSite::SendChatf(IshipIGC* pshipSender, ChatTarget ctRecipient, ObjectID oidRecipient, SoundID soVoiceOver, const char* pszText, ...) {
@@ -141,7 +142,7 @@ namespace fa
 
   void ClientIgcSite::TerminateModelEvent(ImodelIGC* model)
   {
-    std::cout << "Terminate model event " << model << "\n";
+//    std::cout << "Terminate model event " << model << "\n";
   }
 
   void ClientIgcSite::TerminateMissionEvent(ImissionIGC* pMission)
@@ -466,5 +467,4 @@ namespace fa
     std::cout << "Reload " << pship << " launcher " << plauncher << " type " << type << "\n";
     return true;
   }
-
 }
