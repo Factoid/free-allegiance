@@ -59,8 +59,11 @@ IshipIGC* launchShip( ImissionIGC& mission, IsideIGC* side, int hullID, PilotTyp
   ControlData cd;
   cd.jsValues[c_axisThrottle] = -1.0f;
   ship->SetControls(cd);
-//          m->PickDefaultOrder(pcluster,m->GetPosition(),false);
-  ship->PickDefaultOrder(nullptr,ship->GetPosition(),false);
+  if( pt == c_ptWingman )
+  {
+    ship->PickDefaultOrder(nullptr,ship->GetPosition(),false);
+    ship->SetAutopilot(true);
+  }
   return ship;
 }
 

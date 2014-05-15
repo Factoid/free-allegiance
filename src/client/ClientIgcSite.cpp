@@ -267,19 +267,22 @@ namespace fa
   bool ClientIgcSite::DockWithStationEvent(IshipIGC* ship, IstationIGC* station)
   {
     std::cout << "Dock with station " << ship << " at " << station << "\n";
-    ship->SetBaseHullType(ship->GetMission()->GetHullType(210)); // New scout
-
-    const PartTypeListIGC* plist = ship->GetHullType()->GetPreferredPartTypes();
-    std::cout << "Add parts\n";
-    for( auto part : *plist )
+    if( ship->GetBaseHullType() != ship->GetMission()->GetHullType(210) )
     {
-      std::cout << "Part name " << part->GetName() << ", type " << part->GetEquipmentType() << "\n";
-      switch( part->GetEquipmentType() )
+      ship->SetBaseHullType(ship->GetMission()->GetHullType(210)); // New scout
+
+      const PartTypeListIGC* plist = ship->GetHullType()->GetPreferredPartTypes();
+      std::cout << "Add parts\n";
+      for( auto part : *plist )
       {
-        case ET_Weapon:
-          IpartIGC* p = ship->CreateAndAddPart(part,0,0);
-          p->Arm();
-          break;
+        std::cout << "Part name " << part->GetName() << ", type " << part->GetEquipmentType() << "\n";
+        switch( part->GetEquipmentType() )
+        {
+          case ET_Weapon:
+            IpartIGC* p = ship->CreateAndAddPart(part,0,0);
+            p->Arm();
+            break;
+        }
       }
     }
 
@@ -450,10 +453,10 @@ namespace fa
     std::cout << "Lay expendable " << pet << " from " << pshipLayer << "\n";
   }
 
-  IclusterIGC* ClientIgcSite::GetCluster(IshipIGC* pship, ImodelIGC* pmodel)
+  IclusterIGC* ClientIgcSite::GetCluster(IshipIGC* pship, ImodelIGC* target)
   {
-    std::cout << "Get cluster " << pship << " model " << pmodel << "\n";
-    return nullptr;
+//    std::cout << "Get cluster " << pship << " model " << pmodel << "\n";
+    return target->GetCluster();
   }
 
   IclusterIGC* ClientIgcSite::GetRipcordCluster(IshipIGC* pship, HullAbilityBitMask habm)
