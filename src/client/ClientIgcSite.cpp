@@ -386,6 +386,11 @@ namespace fa
   void ClientIgcSite::ChangeCluster( IshipIGC* pship, IclusterIGC* pclusterOld, IclusterIGC* pclusterNew )
   {
     std::cout << "Ship " << pship << " moved from cluster " << pclusterOld << " to " << pclusterNew << "\n";
+    if( pclusterOld )
+    {
+      MyClusterSite* mcs = dynamic_cast<MyClusterSite*>( pclusterOld->GetClusterSite() );
+      mcs->RemoveViewer(*this);
+    }
     if( pclusterNew )
     {
       MyClusterSite* mcs = dynamic_cast<MyClusterSite*>( pclusterNew->GetClusterSite() );

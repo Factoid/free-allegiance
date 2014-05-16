@@ -7,6 +7,7 @@
 #include <osgGA/TrackballManipulator>
 #include <osgGA/NodeTrackerManipulator>
 #include <osgGA/CameraManipulator>
+#include <osgText/Text>
 #include <igc/pch.h>
 #include <igc/missionIGC.h>
 #include <iostream>
@@ -75,9 +76,11 @@ class MyEventHandler : public osgGA::GUIEventHandler
 private:
   bool mouseStick = false;
   ControlData controlData;
+  IshipIGC* ship;
   bool m_fire = false;
 
 public:
+  void setShip( IshipIGC* ship ) { this->ship = ship; }
   const bool fire() const { return m_fire; }
   const ControlData& getControls() const { return controlData; }
 
@@ -113,10 +116,25 @@ public:
         case osgGA::GUIEventAdapter::EventType::KEYDOWN:
           switch( ea.getUnmodifiedKey() )
           {
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_W:
+              ship->SetStateBits(upButtonIGC,upButtonIGC);
+              break;
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_S:
+              ship->SetStateBits(downButtonIGC,downButtonIGC);
+              break;              
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_A:
+              ship->SetStateBits(leftButtonIGC,leftButtonIGC);
+              break;              
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_D:
+              ship->SetStateBits(rightButtonIGC,rightButtonIGC);
+              break;              
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_X:
+              ship->SetStateBits(backwardButtonIGC,backwardButtonIGC);
+              break;              
             case osgGA::GUIEventAdapter::KeySymbol::KEY_C:
               chase = !chase;
               break;
-            case osgGA::GUIEventAdapter::KeySymbol::KEY_S:
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_I:
               for( auto s : *mission.GetShips() )
               {
                 std::cout << "Ship " << s->GetObjectID() << " - " << s->GetName() << " - " << s->GetHullType()->GetObjectID() << "\n";
@@ -153,6 +171,24 @@ public:
           }
           break;
         case osgGA::GUIEventAdapter::EventType::KEYUP:
+          switch( ea.getUnmodifiedKey() )
+          {
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_W:
+              ship->SetStateBits(upButtonIGC,0);
+              break;
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_S:
+              ship->SetStateBits(downButtonIGC,0);
+              break;              
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_A:
+              ship->SetStateBits(leftButtonIGC,0);
+              break;              
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_D:
+              ship->SetStateBits(rightButtonIGC,0);
+              break;              
+            case osgGA::GUIEventAdapter::KeySymbol::KEY_X:
+              ship->SetStateBits(backwardButtonIGC,0);
+              break;             
+          }
           break;
         case osgGA::GUIEventAdapter::EventType::SCROLL:
           break;
@@ -178,6 +214,24 @@ int main( int argc, char** argv )
 {
   try
   {
+    osg::Group* root = new osg::Group();
+    
+    osg::Projection* HUDProjection = new osg::Projection();
+    root->addChild(HUDProjection);
+    HUDProjection->setMatrix(osg::Matrix::ortho2D(0,1024,0,768));
+    
+    osg::MatrixTransform* HUDView = new osg::MatrixTransform();
+    HUDProjection->addChild(HUDView);
+    HUDView->setMatrix(osg::Matrix::identity());
+    HUDView->setReferenceFrame(osg::Transform::ABSOLUTE_RF);
+    
+    osg::Geode* HUDGeode = new osg::Geode();
+    HUDView->addChild(HUDGeode);
+    
+    osgText::Text* text = new osgText::Text();
+    HUDGeode->addDrawable( text );
+    text->setText("Hello world\nLine 2\nLine 3");
+  
 	  fa::ResourceManager::setPathBase("decompiled/");
 
     UTL::SetArtPath( "Artwork/" );
@@ -191,7 +245,7 @@ int main( int argc, char** argv )
     mp.strGameName = std::string("Flight Test");
     mp.nTeams = 2;
     mp.rgCivID = { 18, 18 };
-    mp.mmMapType = c_mmBrawl;
+//    mp.mmMapType = c_mmBrawl;
     mission.SetMissionParams( &mp ); 
 
     const char sideNames[c_cSidesMax][c_cbSideName] = { "Team 1", "Team 2" };
@@ -204,6 +258,7 @@ int main( int argc, char** argv )
     osgViewer::Viewer& viewer = clientIgc;
     osg::ref_ptr<MyEventHandler> evh( new MyEventHandler );
     evh->viewer = &viewer;
+    viewer.setSceneData(root);
     viewer.addEventHandler( evh );
 
     double fovy, ar, zNear, zFar;
@@ -219,8 +274,9 @@ int main( int argc, char** argv )
     IshipIGC* ship = launchShip( mission, side0, 210, c_ptPlayer, "Factoid" );
     auto id = ship->GetObjectID();
     MyThingSite* mts = dynamic_cast<MyThingSite*>(ship->GetThingSite());
-    MyClusterSite* mcs = dynamic_cast<MyClusterSite*>(ship->GetCluster()->GetClusterSite());
-    mcs->SetViewer(viewer);
+    //MyClusterSite* mcs = dynamic_cast<MyClusterSite*>(ship->GetCluster()->GetClusterSite());
+    evh->setShip(ship);
+//    mcs->SetViewer(viewer);
 
     IsideIGC* side1 = mission.GetSide(1);
     launchShip( mission, side1, 210, c_ptWingman, "Factoid2" );
@@ -255,7 +311,7 @@ int main( int argc, char** argv )
       ship = mission.GetShip(id);
       mts = dynamic_cast<MyThingSite*>(ship->GetThingSite());
       osg::Vec3 e = mts->GetCockpit();
-      osg::Vec3 c = e + (mts->GetForward()*3);
+      osg::Vec3 c = e + (mts->GetForward()*10);
       if( chase )
       {
         e += (mts->GetForward()*-20) + (mts->GetUp()*5);

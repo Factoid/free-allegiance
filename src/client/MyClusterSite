@@ -25,10 +25,16 @@ public:
     }
   }
 
+  void RemoveViewer( osgViewer::Viewer& viewer )
+  {
+    viewer.getSceneData()->asGroup()->removeChild(root);
+  }
+
   void SetViewer( osgViewer::Viewer& viewer )
   {
-    viewer.setSceneData(root);
+    viewer.getSceneData()->asGroup()->addChild(root);
   }
+
 private:
   IclusterIGC* cluster;
   osg::ref_ptr<osg::Group> root;

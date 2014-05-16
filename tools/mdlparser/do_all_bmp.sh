@@ -1,5 +1,5 @@
 #!/bin/bash
-for f in ../Artwork/*bmp.mdl
+for f in ./Artwork/*bmp.mdl
 do
   echo "Processing "$f
   ./mdlparser.py `basename ${f%.*}` > /dev/null 2> /dev/null

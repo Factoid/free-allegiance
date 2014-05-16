@@ -326,13 +326,18 @@ class Image:
     self.write_png( "{0}/{1}".format(MDLFile.write_path,self.name) )
 
   def fromReader(self,reader):
+    print( "Loading image", reader.namespace )
     self.namespace = reader.namespace
     self.name = reader.namespace + ".png"
+    
+    print( "Reading surface" )
     self.info = BinarySurfaceInfo().fromReader(reader)
     reader.align_bytes()
 
+    print( "Reading raw data" )
     self.rawdata = reader.f.read(self.info.pitch * self.info.size.y)
-
+    
+    print( "saving png" )
     self.save_png()
     return self
 
@@ -550,7 +555,7 @@ class MDLFile:
     self.currentObjectName = objName
     while True:
       token = self.read_dword()
-      #print("Token is",MDLFile.token_str[token])
+      print("Token is",MDLFile.token_str[token])
       if token == MDLFile.OBJ_FLOAT: stack.append( self.read_float() )
       elif token == MDLFile.OBJ_STRING: stack.append( self.read_string() )
       elif token == MDLFile.OBJ_TRUE: stack.append( True )
