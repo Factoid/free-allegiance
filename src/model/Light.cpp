@@ -11,8 +11,8 @@ namespace fa
 {
   Image lightImg( "f101bmp.png" );
 
-  Light::Light() : color( Color(1.0f,1.0f,1.0f) ), position( Vector3(0,0,0) ), hold(1.0f), period(1.0f), phase(0.0f), ramp_up(0.5f), ramp_down(0.5f) {}
-  Light::Light( const Color& c, const Vector3& pos, float period, float phase, float hold, float ramp_up, float ramp_down ) : color(c), position(pos), period(period), phase(phase), hold(hold), ramp_up(ramp_up), ramp_down(ramp_down) {}
+  Light::Light() : hold(1.0f), period(1.0f), phase(0.0f), ramp_up(0.5f), ramp_down(0.5f), color( Color(1.0f,1.0f,1.0f) ), position( Vector3(0,0,0) ) {}
+  Light::Light( const Color& c, const Vector3& pos, float period, float phase, float hold, float ramp_up, float ramp_down ) : hold(hold), period(period), phase(phase), ramp_up(ramp_up), ramp_down(ramp_down), color(c), position(pos) {}
 
   osg::ref_ptr<osg::Node> Light::buildGraph( osg::ref_ptr<osg::Node> node )
   {
