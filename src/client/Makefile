@@ -30,4 +30,8 @@ install: client.bin
 clean:
 	rm client.bin *.o
 	$(MAKE) -C ../model/ clean
+
+clean-all:
+	rm client.bin *.o
+	$(MAKE) -C ../model/ clean
 	$(MAKE) -C ../../deps/alleg_src/igc/ clean

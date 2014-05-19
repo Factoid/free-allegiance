@@ -1,0 +1,15 @@
+#ifndef __RENDERABLE_H__
+#define __RENDERABLE_H__
+
+#include <osg/Group>
+
+namespace fa
+{
+  class Renderable
+  {
+    public:
+      virtual osg::ref_ptr<osg::Group> getRoot() = 0;
+  };
+}
+
+#endif

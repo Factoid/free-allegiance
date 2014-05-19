@@ -1,0 +1,23 @@
+#ifndef __RENDER_MANAGER_H__
+#define __RENDER_MANAGER_H__
+
+#include <osg/Group>
+#include <memory>
+#include <osgViewer/Viewer>
+#include "Renderable" 
+
+namespace fa
+{
+  class RenderManager
+  {
+    public:
+      RenderManager();
+      void addRenderable( std::shared_ptr<Renderable> r );
+      void setViewer( osgViewer::Viewer* viewer );
+
+    private:
+      osg::ref_ptr<osg::Group> root;
+  };
+}
+
+#endif

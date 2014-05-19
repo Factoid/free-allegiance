@@ -3,6 +3,9 @@
 
 #include "InputManager"
 #include "ClientIgcSite"
+#include "Hud"
+#include "RenderManager"
+#include <igc/missionIGC.h>
 
 namespace osgViewer {
   class Viewer;
@@ -25,6 +28,9 @@ namespace fa
       MyThingSite* viewTarget;
       ClientIgcSite clientIgc;
       osg::ref_ptr<InputManager> evh;
+      CmissionIGC mission;
+      std::shared_ptr<HUD> hud;
+      RenderManager renderManager;
   };
 }
 

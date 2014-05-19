@@ -1,0 +1,19 @@
+#ifndef __HUD_H__
+#define __HUD_H__
+
+#include "Renderable"
+
+namespace fa
+{
+  class HUD : public Renderable
+  {
+    public:
+      HUD();
+      virtual osg::ref_ptr<osg::Group> getRoot();
+
+    private:
+      osg::ref_ptr<osg::Projection> root;
+  };
+}
+
+#endif

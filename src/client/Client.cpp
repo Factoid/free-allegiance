@@ -19,6 +19,7 @@
 #include "formatters"
 #include "MyThingSite"
 #include "MyClusterSite"
+#include "Renderable"
 
 using namespace fa;
 
@@ -69,44 +70,14 @@ IshipIGC* launchShip( ImissionIGC& mission, IsideIGC* side, int hullID, PilotTyp
   return ship;
 }
 
-CmissionIGC mission;
-
-#ifdef _WINDOWS
-int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR cmdLine, int cmdShow )
-#else
-int main( int argc, char** argv )
-#endif
-{
-  Client client;
-
-  client.init();
-  client.run();
-  return 0;
-}
-
 Client::Client()
 {
 }
 
 void Client::init()
 {
-  osg::Group* root = new osg::Group();
-  
-  osg::Projection* HUDProjection = new osg::Projection();
-  root->addChild(HUDProjection);
-  HUDProjection->setMatrix(osg::Matrix::ortho2D(0,1024,0,768));
-  
-  osg::MatrixTransform* HUDView = new osg::MatrixTransform();
-  HUDProjection->addChild(HUDView);
-  HUDView->setMatrix(osg::Matrix::identity());
-  HUDView->setReferenceFrame(osg::Transform::ABSOLUTE_RF);
-  
-  osg::Geode* HUDGeode = new osg::Geode();
-  HUDView->addChild(HUDGeode);
-  
-  osgText::Text* text = new osgText::Text();
-  HUDGeode->addDrawable( text );
-  text->setText("Hello world\nLine 2\nLine 3");
+  hud = std::shared_ptr<HUD>( new HUD() );
+  renderManager.addRenderable(hud);
 
   fa::ResourceManager::setPathBase("decompiled/");
 
@@ -133,7 +104,7 @@ void Client::init()
   viewer = &clientIgc;
   evh = osg::ref_ptr<InputManager>( new InputManager );
   evh->viewer = viewer;
-  viewer->setSceneData(root);
+  renderManager.setViewer(viewer);
   viewer->addEventHandler( evh );
 
   double fovy, ar, zNear, zFar;
