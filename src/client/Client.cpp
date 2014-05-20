@@ -121,7 +121,6 @@ void Client::init()
 
   IsideIGC* side0 = mission.GetSide(0);
   IshipIGC* ship = launchShip( mission, side0, 210, c_ptPlayer, "Factoid" );
-  controlTarget = ship;
   renderManager.setViewTarget(ship);
   inputManager->setShip(ship);
 
@@ -140,4 +139,3 @@ void Client::run()
   }
   std::cout << "Shuttind down\n";
 }
-

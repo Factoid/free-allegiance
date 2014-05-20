@@ -27,7 +27,6 @@ namespace fa
       void launchMission();
 
       Time start;
-      IshipIGC* controlTarget;
       ClientIgcSite clientIgc;
       osg::ref_ptr<InputManager> inputManager;
       CmissionIGC mission;

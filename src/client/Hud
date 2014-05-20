@@ -2,6 +2,9 @@
 #define __HUD_H__
 
 #include "Renderable"
+#include <osgText/Text>
+
+class IshipIGC;
 
 namespace fa
 {
@@ -10,9 +13,14 @@ namespace fa
     public:
       HUD();
       virtual osg::ref_ptr<osg::Group> getRoot();
+      void setShip( IshipIGC* ship );
+
+      virtual void update();
 
     private:
       osg::ref_ptr<osg::Projection> root;
+      int shipID;
+      osg::ref_ptr<osgText::Text> text;
   };
 }
 

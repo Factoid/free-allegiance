@@ -3,6 +3,7 @@
 
 #include <osg/Group>
 #include <memory>
+#include <list>
 #include <osgViewer/Viewer>
 #include "Renderable" 
 #include "MyThingSite"
@@ -23,6 +24,7 @@ namespace fa
       osgViewer::Viewer* viewer;
       int viewTargetID;
       ImissionIGC* mission;
+      std::list<std::shared_ptr<Renderable>> renderables;
   };
 }
 

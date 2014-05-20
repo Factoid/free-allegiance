@@ -3,7 +3,7 @@
 #include <osg/Projection>
 #include <osg/MatrixTransform>
 #include <osg/Geode>
-#include <osgText/Text>
+#include <igc/pch.h>
 
 namespace fa
 {
@@ -20,7 +20,7 @@ namespace fa
     osg::Geode* HUDGeode = new osg::Geode();
     HUDView->addChild(HUDGeode);
 
-    osgText::Text* text = new osgText::Text();
+    text = new osgText::Text();
     HUDGeode->addDrawable( text );
     text->setText("Hello world\nLine 2\nLine 3");
   }
@@ -28,5 +28,15 @@ namespace fa
   osg::ref_ptr<osg::Group> HUD::getRoot()
   {
     return root;
+  }
+
+  void HUD::setShip( IshipIGC* ship )
+  {
+    shipID = ship->GetObjectID();
+  }
+
+  void HUD::update()
+  {
+    text->setText( "foo" );
   }
 }

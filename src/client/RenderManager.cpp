@@ -12,6 +12,7 @@ namespace fa {
 
   void RenderManager::addRenderable( std::shared_ptr<Renderable> r )
   {
+    renderables.push_back( r );
     root->addChild( r->getRoot() );
   }
 
@@ -34,6 +35,10 @@ namespace fa {
 
   void RenderManager::update( bool chaseView )
   {
+    for( auto r : renderables )
+    {
+      r->update();
+    }
     MyThingSite* viewTarget = dynamic_cast<MyThingSite*>(mission->GetShip(viewTargetID)->GetThingSite());
     if( viewTarget == nullptr ) return;
 
