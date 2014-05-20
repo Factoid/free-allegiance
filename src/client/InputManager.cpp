@@ -2,7 +2,8 @@
 
 namespace fa
 {
-  void InputManager::setShip( IshipIGC* ship ) { this->ship = ship; }
+  void InputManager::setShip( IshipIGC* ship ) { this->shipID = ship->GetObjectID(); }
+  void InputManager::setMission( ImissionIGC* mission ) { this->mission = mission; }
   const bool InputManager::fire() const { return m_fire; }
   const bool InputManager::chase() const { return m_chase; }
   const ControlData& InputManager::getControls() const { return controlData; }
@@ -12,6 +13,7 @@ namespace fa
   {
     auto et = (unsigned int)ea.getEventType();
     bool ok = true;
+    IshipIGC* ship = mission->GetShip(shipID);
     while( et != 0 )
     {
       auto e = et & ~(et-1);
@@ -132,6 +134,9 @@ namespace fa
 
   void InputManager::update()
   {
+    IshipIGC* ship = mission->GetShip(shipID);
+    if( ship == nullptr ) return;
+
     ship->SetControls( getControls() );
     for( auto part : *ship->GetParts() )
     {

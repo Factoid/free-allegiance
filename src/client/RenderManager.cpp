@@ -5,6 +5,11 @@ namespace fa {
   {
   }
 
+  void RenderManager::setMission( ImissionIGC* mission )
+  {
+    this->mission = mission;
+  }
+
   void RenderManager::addRenderable( std::shared_ptr<Renderable> r )
   {
     root->addChild( r->getRoot() );
@@ -22,13 +27,16 @@ namespace fa {
     viewer->realize();
   }
 
-  void RenderManager::setViewTarget( MyThingSite* viewTarget )
+  void RenderManager::setViewTarget( IshipIGC* viewTarget )
   {
-    this->viewTarget = viewTarget;
+    this->viewTargetID = viewTarget->GetObjectID();
   }
 
   void RenderManager::update( bool chaseView )
   {
+    MyThingSite* viewTarget = dynamic_cast<MyThingSite*>(mission->GetShip(viewTargetID)->GetThingSite());
+    if( viewTarget == nullptr ) return;
+
     osg::Vec3 e = viewTarget->GetCockpit();
     osg::Vec3 c = e + (viewTarget->GetForward()*10);
     if( chaseView )

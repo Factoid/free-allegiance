@@ -95,11 +95,16 @@ void Client::launchMission()
   mission.SetStartTime( start );
   mission.EnterGame();
   mission.SetMissionStage(STAGE_STARTED); 
+
+  renderManager.setMission(&mission);
+  inputManager->setMission(&mission);
 }
 
 void Client::init()
 {
   hud = std::shared_ptr<HUD>( new HUD() );
+  inputManager = osg::ref_ptr<InputManager>( new InputManager );
+
   renderManager.addRenderable(hud);
 
   fa::ResourceManager::setPathBase("decompiled/");
@@ -109,7 +114,6 @@ void Client::init()
 
   loadCore();
   launchMission();
-  inputManager = osg::ref_ptr<InputManager>( new InputManager );
    
   clientIgc.addEventHandler( inputManager );
   renderManager.setViewer(&clientIgc);
@@ -118,8 +122,7 @@ void Client::init()
   IsideIGC* side0 = mission.GetSide(0);
   IshipIGC* ship = launchShip( mission, side0, 210, c_ptPlayer, "Factoid" );
   controlTarget = ship;
-  MyThingSite* viewTarget = dynamic_cast<MyThingSite*>(ship->GetThingSite());
-  renderManager.setViewTarget(viewTarget);
+  renderManager.setViewTarget(ship);
   inputManager->setShip(ship);
 
   IsideIGC* side1 = mission.GetSide(1);

@@ -13,12 +13,14 @@ namespace fa
     private:
       bool mouseStick = false;
       ControlData controlData;
-      IshipIGC* ship;
+      int shipID;
       bool m_fire = false;
       bool m_chase = false;
       osgViewer::Viewer* viewer;
+      ImissionIGC* mission;
 
     public:
+      void setMission( ImissionIGC* mission );
       void setShip( IshipIGC* ship );
       const bool fire() const;
       const bool chase() const;

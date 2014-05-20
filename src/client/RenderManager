@@ -12,15 +12,17 @@ namespace fa
   {
     public:
       RenderManager();
+      void setMission( ImissionIGC* mission );
       void addRenderable( std::shared_ptr<Renderable> r );
       void setViewer( osgViewer::Viewer* viewer );
       void update( bool chaseView );
-      void setViewTarget( MyThingSite* viewTarget );
+      void setViewTarget( IshipIGC* viewTarget );
 
     private:
       osg::ref_ptr<osg::Group> root;
       osgViewer::Viewer* viewer;
-      MyThingSite* viewTarget;
+      int viewTargetID;
+      ImissionIGC* mission;
   };
 }
 
