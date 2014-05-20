@@ -6,6 +6,7 @@ import jsonpickle
 import json
 import os
 import PIL.Image
+import PIL.ImageDraw
 import argparse
 
 class Ptr(object):
@@ -146,8 +147,12 @@ class Vertex:
 class MeshGeoFactory:
   def read(self,reader,stack):
     return MeshGeo(reader)
-        
+
+def to_uv(s,v,f):
+  return (v[f].tex.u*s,(1.0-v[f].tex.v)*s)
+
 class MeshGeo(Geo):
+  UVimage = False
   write_path = ""
   base_name = ""
   mesh_num = 0
@@ -165,6 +170,9 @@ class MeshGeo(Geo):
     for i in range(numIndices):
       indices.append(reader.read_word())
 
+    if MeshGeo.UVimage:
+      self.make_uv_texture(MDLFile.write_path+"/"+reader.namespace,verts,indices,"{1}/{0}_uv.png".format(reader.namespace,MDLFile.write_path))
+
     self.to_obj("{0}/{1}".format(MDLFile.write_path,self.resourcePath),verts,indices)
 
   def get_lists(self):
@@ -175,6 +183,20 @@ class MeshGeo(Geo):
       norm.extend([v.normal.x,v.normal.y,v.normal.z])
     return (vert,norm)
 
+  def make_uv_texture(self,namespace,verts,indices,path):
+    print( "Making UV image", path )
+    size = 1024
+    #img = PIL.Image.new("RGB",(size,size),(255,255,255))
+    img = PIL.Image.open(namespace+"bmp.png").resize((size,size),PIL.Image.BICUBIC)
+    draw = PIL.ImageDraw.Draw(img)
+
+    faces = zip( indices[0::3], indices[1::3], indices[2::3] )
+    for face in faces:
+      face = list(face)
+      draw.line([to_uv(size,verts,face[0]),to_uv(size,verts,face[1]),to_uv(size,verts,face[1]),to_uv(size,verts,face[2]),to_uv(size,verts,face[2]),to_uv(size,verts,face[0])],(255,0,0),1)
+
+    img.save(path)
+    
   def to_obj(self,path,verts,indices):
     with open(path,"w") as f:
       for v in verts:
@@ -326,18 +348,14 @@ class Image:
     self.write_png( "{0}/{1}".format(MDLFile.write_path,self.name) )
 
   def fromReader(self,reader):
-    print( "Loading image", reader.namespace )
     self.namespace = reader.namespace
     self.name = reader.namespace + ".png"
     
-    print( "Reading surface" )
     self.info = BinarySurfaceInfo().fromReader(reader)
     reader.align_bytes()
 
-    print( "Reading raw data" )
     self.rawdata = reader.f.read(self.info.pitch * self.info.size.y)
     
-    print( "saving png" )
     self.save_png()
     return self
 
@@ -555,7 +573,7 @@ class MDLFile:
     self.currentObjectName = objName
     while True:
       token = self.read_dword()
-      print("Token is",MDLFile.token_str[token])
+      #print("Token is",MDLFile.token_str[token])
       if token == MDLFile.OBJ_FLOAT: stack.append( self.read_float() )
       elif token == MDLFile.OBJ_STRING: stack.append( self.read_string() )
       elif token == MDLFile.OBJ_TRUE: stack.append( True )
@@ -581,7 +599,7 @@ class MDLFile:
     count = self.read_dword()
     lData = []
     for i in range(count):
-      lData.insert(0,self.read_object())
+      lData.insert(0,self.read_object("foo"+str(i)))
     return lData
 
   def read_pair(self,stack):
@@ -642,6 +660,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument( 'file' )
 parser.add_argument( '--artwork', default="./Artwork" )
 parser.add_argument( '--dest', default="./decompiled" )
+parser.add_argument( '-u', action="store_true" )
 args = parser.parse_args()
 
 NamespaceManager.add( "model", "ModifiableNumber", ModifiableNumberFactory() )
@@ -656,6 +675,7 @@ NamespaceManager.add( "model", "GroupGeo", GroupGeoFactory() )
 NamespaceManager.add( "model", "FrameImage", FrameImageFactory() )
 NamespaceManager.add( "model", "ImportFont", ImportFontFactory() )
 MDLFile.write_path = args.dest
+MeshGeo.UVimage = args.u
 try:
   srcDir = os.path.join(args.artwork,args.file)+".mdl"
   print("Src Path :",srcDir)

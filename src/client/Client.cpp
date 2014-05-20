@@ -74,19 +74,14 @@ Client::Client()
 {
 }
 
-void Client::init()
+void Client::loadCore()
 {
-  hud = std::shared_ptr<HUD>( new HUD() );
-  renderManager.addRenderable(hud);
-
-  fa::ResourceManager::setPathBase("decompiled/");
-
-  UTL::SetArtPath( "Artwork/" );
-  Time start = Clock::now();
-
   mission.Initialize( start, &clientIgc );
   LoadIGCStaticCore( "cc_14", &mission, false, nullptr );
-  
+}
+
+void Client::launchMission()
+{
   MissionParams mp;
   mp.strGameName = std::string("Flight Test");
   mp.nTeams = 2;
@@ -100,74 +95,45 @@ void Client::init()
   mission.SetStartTime( start );
   mission.EnterGame();
   mission.SetMissionStage(STAGE_STARTED); 
+}
 
-  viewer = &clientIgc;
-  evh = osg::ref_ptr<InputManager>( new InputManager );
-  evh->viewer = viewer;
-  renderManager.setViewer(viewer);
-  viewer->addEventHandler( evh );
+void Client::init()
+{
+  hud = std::shared_ptr<HUD>( new HUD() );
+  renderManager.addRenderable(hud);
 
-  double fovy, ar, zNear, zFar;
-  viewer->getCamera()->getProjectionMatrixAsPerspective( fovy, ar, zNear, zFar );
-  zFar *= 100.0f;
-  viewer->getCamera()->setProjectionMatrixAsPerspective( fovy, ar, zNear, zFar );
-  viewer->getCamera()->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
-  viewer->realize();
-#if MANIP
-  launchShip( mission );
-#else
+  fa::ResourceManager::setPathBase("decompiled/");
+  UTL::SetArtPath( "Artwork/" );
+
+  start = Clock::now();
+
+  loadCore();
+  launchMission();
+  inputManager = osg::ref_ptr<InputManager>( new InputManager );
+   
+  clientIgc.addEventHandler( inputManager );
+  renderManager.setViewer(&clientIgc);
+  inputManager->setViewer(&clientIgc);
+
   IsideIGC* side0 = mission.GetSide(0);
   IshipIGC* ship = launchShip( mission, side0, 210, c_ptPlayer, "Factoid" );
-//  auto id = ship->GetObjectID();
   controlTarget = ship;
-  viewTarget = dynamic_cast<MyThingSite*>(ship->GetThingSite());
-  //MyClusterSite* mcs = dynamic_cast<MyClusterSite*>(ship->GetCluster()->GetClusterSite());
-  evh->setShip(ship);
-//    mcs->SetViewer(viewer);
+  MyThingSite* viewTarget = dynamic_cast<MyThingSite*>(ship->GetThingSite());
+  renderManager.setViewTarget(viewTarget);
+  inputManager->setShip(ship);
 
   IsideIGC* side1 = mission.GetSide(1);
   launchShip( mission, side1, 210, c_ptWingman, "Factoid2" );
-#endif
-//    std::cout << "Create cluster\n";
-//    osg::ref_ptr<osg::Group> root = createCluster( mission.GetSide(0)->GetStation(0)->GetCluster() ); 
-//    viewer->setSceneData(root);
-
-#if MANIP
-  osg::ref_ptr<osgGA::TrackballManipulator> cManip( new osgGA::TrackballManipulator );
-  viewer->setCameraManipulator(cManip); 
-#endif
 }
 
 void Client::run()
 {
   std::cout << "Start game loop\n";
-  while(!viewer->done())
+  while(!clientIgc.done())
   {
-    controlTarget->SetControls( evh->getControls() );
-    for( auto part : *controlTarget->GetParts() )
-    {
-      if( part->GetEquipmentType() == ET_Weapon )
-      {
-        if( evh->fire() )
-        {
-          part->Activate();
-        } else
-        {
-          part->Deactivate();
-        }
-      }
-    }
+    inputManager->update();
     mission.Update( Clock::now() );
-#if !MANIP
-    osg::Vec3 e = viewTarget->GetCockpit();
-    osg::Vec3 c = e + (viewTarget->GetForward()*10);
-    if( evh->chase() )
-    {
-      e += (viewTarget->GetForward()*-20) + (viewTarget->GetUp()*5);
-    }
-    viewer->getCamera()->setViewMatrixAsLookAt( e, c, viewTarget->GetUp() );
-#endif
-    viewer->frame();
+    renderManager.update( inputManager->chase() );
   }
   std::cout << "Shuttind down\n";
 }

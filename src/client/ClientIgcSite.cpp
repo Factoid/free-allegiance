@@ -235,19 +235,19 @@ namespace fa
       std::cout << "Relaunching destroyed ship\n";
       ship->SetBaseHullType(ship->GetMission()->GetHullType(210)); // New scout
 
-  const PartTypeListIGC* plist = ship->GetHullType()->GetPreferredPartTypes();
-  std::cout << "Add parts\n";
-  for( auto part : *plist )
-  {
-    std::cout << "Part name " << part->GetName() << ", type " << part->GetEquipmentType() << "\n";
-    switch( part->GetEquipmentType() )
-    {
-      case ET_Weapon:
-        IpartIGC* p = ship->CreateAndAddPart(part,0,0);
-        p->Arm();
-        break;
-    }
-  }
+      const PartTypeListIGC* plist = ship->GetHullType()->GetPreferredPartTypes();
+      std::cout << "Add parts\n";
+      for( auto part : *plist )
+      {
+        std::cout << "Part name " << part->GetName() << ", type " << part->GetEquipmentType() << "\n";
+        switch( part->GetEquipmentType() )
+        {
+          case ET_Weapon:
+            IpartIGC* p = ship->CreateAndAddPart(part,0,0);
+            p->Arm();
+            break;
+        }
+      }
 
       ship->GetStation()->RepairAndRefuel(ship);
       ship->GetStation()->Launch(ship);

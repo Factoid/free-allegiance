@@ -23,11 +23,13 @@ namespace fa
       void run();
 
     private:
-      osgViewer::Viewer* viewer;
+      void loadCore();
+      void launchMission();
+
+      Time start;
       IshipIGC* controlTarget;
-      MyThingSite* viewTarget;
       ClientIgcSite clientIgc;
-      osg::ref_ptr<InputManager> evh;
+      osg::ref_ptr<InputManager> inputManager;
       CmissionIGC mission;
       std::shared_ptr<HUD> hud;
       RenderManager renderManager;
