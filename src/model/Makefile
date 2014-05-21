@@ -1,11 +1,5 @@
 DEP_INCLUDE+=-I../../deps/cereal/include
-#CC=g++
 CFLAGS+=-std=c++11 -ggdb3 -O0 -fpic
-#	@set -e; \
-
-%.d: %.cpp
-	$(CC) -std=c++11 $(DEP_INCLUDE) -MM $< > $@;
-#	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 
 .SUFFIXES:
 
@@ -21,8 +15,11 @@ deps: $(sources:.cpp=.d)
 
 -include $(sources:.cpp=.d)
 
-#libmodel.a: $(objects)
-#	ar rvs $@ $^
+%.d: %.cpp
+	@set -e; rm -f $@; \
+	$(CC) -std=c++11 $(DEP_INCLUDE) -MM $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+  rm -f $@.$$$$
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) $(DEP_INCLUDE) -c $< -o $@
