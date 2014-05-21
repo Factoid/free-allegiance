@@ -1,5 +1,6 @@
 DEP_INCLUDE+=-I../../deps/cereal/include
-CFLAGS+=-std=c++11 -ggdb3 -O0 -fpic
+CFLAGS+=-std=gnu++11 -ggdb3 -O0 -fpic
+CC=g++
 
 .SUFFIXES:
 
