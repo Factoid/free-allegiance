@@ -1,25 +1,29 @@
 DEP_INCLUDE+=-I../../deps/cereal/include
 #CC=g++
-CFLAGS+=-std=gnu++11 -ggdb3 -O0 -fpic
-
-sources = $(wildcard *.cpp)
-#objects = $(sources:.cpp=.o)
+CFLAGS+=-std=c++11 -ggdb3 -O0 -fpic
+#	@set -e; \
 
 %.d: %.cpp
-	@set -e; \
-	$(CC) $(CFLAGS) $(DEP_INCLUDE) -MM $< > $@.$$$$; \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
+	$(CC) -std=c++11 $(DEP_INCLUDE) -MM $< > $@;
+#	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 
-#-include $(sources:.cpp=.d)
+.SUFFIXES:
 
-#all: $(objects)
+sources = $(wildcard *.cpp)
+objects = $(sources:.cpp=.o)
+
+all: $(objects)
+
+clean:
+	rm *.o *.d
+
+deps: $(sources:.cpp=.d)
+
+-include $(sources:.cpp=.d)
 
 #libmodel.a: $(objects)
 #	ar rvs $@ $^
 
-#%.o: %.cpp
-#	$(CC) $(CFLAGS) $(DEP_INCLUDE) -c $< -o $@
+%.o: %.cpp
+	$(CC) $(CFLAGS) $(DEP_INCLUDE) -c $< -o $@
 
-clean:
-	rm *.o *.d
