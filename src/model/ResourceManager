@@ -19,6 +19,7 @@ namespace fa
     static std::shared_ptr<ResourceManager> instance();
     osg::ref_ptr<osg::Drawable> getPrimative( ResourceManager::PrimativeType type );
     osg::ref_ptr<osg::Image> getImage( const std::string& name );
+    void reloadImages();
     osg::ref_ptr<osg::Group> getModel( const std::string& name );
 
   private:

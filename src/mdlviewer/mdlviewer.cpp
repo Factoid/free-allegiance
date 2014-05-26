@@ -5,8 +5,69 @@
 #include "model/LODGeo"
 #include "model/ResourceManager"
 #include <osg/MatrixTransform>
+#include <osg/DisplaySettings>
 
 using namespace fa;
+
+class EventHandler : public osgGA::GUIEventHandler
+{
+  public:
+    bool handle( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object* obj, osg::NodeVisitor* nv )
+    {
+      switch( ea.getEventType() )
+      {
+        case osgGA::GUIEventAdapter::EventType::KEYDOWN:
+        switch( ea.getUnmodifiedKey() )
+        {
+          case osgGA::GUIEventAdapter::KeySymbol::KEY_Q:
+          {
+            osg::Texture::Extensions* ext = osg::Texture::getExtensions(0,true);
+            ext->setMaxTextureSize(64);
+            ResourceManager::instance()->reloadImages();
+          }
+            break;
+          case osgGA::GUIEventAdapter::KeySymbol::KEY_W:
+          {
+            osg::Texture::Extensions* ext = osg::Texture::getExtensions(0,true);
+            ext->setMaxTextureSize(128);
+            ResourceManager::instance()->reloadImages();
+          }
+            break;
+          case osgGA::GUIEventAdapter::KeySymbol::KEY_E:
+          {
+            osg::Texture::Extensions* ext = osg::Texture::getExtensions(0,true);
+            ext->setMaxTextureSize(256);
+            ResourceManager::instance()->reloadImages();
+          }
+            break;
+          case osgGA::GUIEventAdapter::KeySymbol::KEY_R:
+          {
+            osg::Texture::Extensions* ext = osg::Texture::getExtensions(0,true);
+            ext->setMaxTextureSize(512);
+            ResourceManager::instance()->reloadImages();
+          }
+            break;
+          case osgGA::GUIEventAdapter::KeySymbol::KEY_T:
+          {
+            osg::Texture::Extensions* ext = osg::Texture::getExtensions(0,true);
+            ext->setMaxTextureSize(1024);
+            ResourceManager::instance()->reloadImages();
+          }
+            break;
+          case osgGA::GUIEventAdapter::KeySymbol::KEY_Y:
+          {
+            osg::Texture::Extensions* ext = osg::Texture::getExtensions(0,true);
+            ext->setMaxTextureSize(2048);
+            ResourceManager::instance()->reloadImages();
+          }
+            break;
+        }
+        break;
+        return true;
+    }
+    return false;
+  }
+};
 
 int main( int argc, char** argv )
 {
@@ -15,8 +76,9 @@ int main( int argc, char** argv )
     std::cout << "Need a file\n";
     return 0;
   }
+  EventHandler* handler = new EventHandler;
   osgViewer::Viewer viewer;
-
+  viewer.addEventHandler(handler);
   ResourceManager::setPathBase("decompiled/");
   osg::ref_ptr<osg::Group> root( new osg::Group );
   osg::ref_ptr<osg::MatrixTransform> m1( new osg::MatrixTransform );

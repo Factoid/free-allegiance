@@ -33,6 +33,14 @@ namespace fa
     return img;
   }
 
+  void ResourceManager::reloadImages()
+  {
+    for( auto i : images )
+    {
+      i.second->dirty();
+    }
+  }
+
   osg::ref_ptr<osg::Group> ResourceManager::getModel( const std::string& path )
   {
     auto it = models.find(path);

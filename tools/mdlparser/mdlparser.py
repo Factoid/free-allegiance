@@ -184,7 +184,7 @@ class MeshGeo(Geo):
     return (vert,norm)
 
   def make_uv_texture(self,namespace,verts,indices,path):
-    print( "Making UV image", path )
+    #print( "Making UV image", path )
     size = 1024
     #img = PIL.Image.new("RGB",(size,size),(255,255,255))
     img = PIL.Image.open(namespace+"bmp.png").resize((size,size),PIL.Image.BICUBIC)
@@ -259,7 +259,7 @@ class BinarySurfaceInfo:
     
   def fromReader(self,reader):
     self.size = Point().fromReader(reader)
-    self.pitch, self.bitCount, self.redMask, self.greenMask, self.blueMask, self.alphaMask, self.colorKeyed = struct.unpack( "hIIIII?", reader.f.read(25) )
+    self.pitch, self.bitCount, self.redMask, self.greenMask, self.blueMask, self.alphaMask, self.colorKeyed = struct.unpack( "HIIIII?", reader.f.read(25) )
     return self
 
   def get_rgb(self, c):
@@ -290,6 +290,8 @@ class FrameImageFactory:
     return FrameImage(frame,img,reader)
 
 class Image:
+  dontSave = False
+  printStats = False
   def __init__(self):
     pass
   
@@ -352,9 +354,12 @@ class Image:
     self.name = reader.namespace + ".png"
     
     self.info = BinarySurfaceInfo().fromReader(reader)
-    reader.align_bytes()
+    if Image.printStats == True: print("Image " + self.namespace + " stats: " + str(self.info))
 
-    self.rawdata = reader.f.read(self.info.pitch * self.info.size.y)
+    reader.align_bytes()
+    total_bytes = self.info.pitch * self.info.size.y
+    if total_bytes > 0:
+      self.rawdata = reader.f.read(self.info.pitch * self.info.size.y)
     
     self.save_png()
     return self
@@ -366,6 +371,7 @@ class Image:
     self.__dict__.update(state)
 
   def write_png(self,path):
+    if Image.dontSave == True: return
     #if os.path.isfile(path): return
 
     img = PIL.Image.new("RGBA",(self.info.size.x,self.info.size.y))
@@ -407,14 +413,14 @@ class NamespaceManager:
     try:
       return NamespaceManager.objects[namespace][libname]
     except KeyError:
-      print( "Couldn't find", namespace, libname )
-      print( "Attempting to add {0}.mdl".format(libname) )
+      #print( "Couldn't find", namespace, libname )
+      #print( "Attempting to add {0}.mdl".format(libname) )
       try:
         NamespaceManager.add( namespace, libname, MDLFile("{1}/{0}.mdl".format(libname,args.artwork),namespace).objects[libname])
-        print( "Trying again..." )
+        #print( "Trying again..." )
         return NamespaceManager.objects[namespace][libname]
       except (KeyError, FileNotFoundError):
-        print( "Still can't find asset, returning nothing" )
+        #print( "Still can't find asset, returning nothing" )
         NamespaceManager.add( namespace, libname, None )
         return NamespaceManager.objects[namespace][libname]
 
@@ -483,7 +489,7 @@ class Font:
         texHeight <<= 1
         nCharHigh = texHeight / self.height
         if nCharWide * nCharHigh <= 256:
-          print( "Texture is too big, aborting" )
+          #print( "Texture is too big, aborting" )
           return
 
     img = PIL.Image.new("RGB",(texWidth,texHeight))
@@ -532,7 +538,7 @@ class MDLFile:
   token_str = ["OBJ_END","OBJ_FLOAT","OBJ_STRING","OBJ_TRUE","OBJ_FALSE","OBJ_LIST","OBJ_APPLY","OBJ_BINARY","OBJ_REF","OBJ_IMPORT","OBJ_PAIR"]
 
   def __init__(self,path,namespace):
-    print( "Loading MDL file", path, "in namespace", namespace )
+    #print( "Loading MDL file", path, "in namespace", namespace )
     self.namespace = namespace
     with io.open(path,"rb") as self.f:
       magic, = struct.unpack("I",self.f.read(4))
@@ -658,9 +664,10 @@ if len(sys.argv) < 2:
 
 parser = argparse.ArgumentParser()
 parser.add_argument( 'file' )
-parser.add_argument( '--artwork', default="./Artwork" )
 parser.add_argument( '--dest', default="./decompiled" )
 parser.add_argument( '-u', action="store_true" )
+parser.add_argument( '--noImages', action="store_true" )
+parser.add_argument( '--stats', action="store_true" )
 args = parser.parse_args()
 
 NamespaceManager.add( "model", "ModifiableNumber", ModifiableNumberFactory() )
@@ -676,10 +683,14 @@ NamespaceManager.add( "model", "FrameImage", FrameImageFactory() )
 NamespaceManager.add( "model", "ImportFont", ImportFontFactory() )
 MDLFile.write_path = args.dest
 MeshGeo.UVimage = args.u
+Image.dontSave = args.noImages
+Image.printStats = args.stats
 try:
-  srcDir = os.path.join(args.artwork,args.file)+".mdl"
-  print("Src Path :",srcDir)
-  mdlfile = MDLFile(srcDir,args.file)
+  namespace = os.path.basename(args.file).split('.')[0]
+  if not os.path.exists(args.dest):
+    os.makedirs(args.dest)
+  #print("Src Path :",args.file)
+  mdlfile = MDLFile(args.file,namespace)
   mdlfile.write_json()
 except NotMDLException:
   print("ASCII MDL File, skipping")
